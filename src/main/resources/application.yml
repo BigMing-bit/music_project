@@ -1,0 +1,50 @@
+server:
+  port: 8080
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: music_demo
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/music_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: pangyiming123.
+  servlet:
+    multipart:
+      max-file-size: 10MB  # 文件最大
+      max-request-size: 100MB  # 请求最大 (包括文件和表单数据)
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+
+mybatis-plus:
+  type-aliases-package: com.pang.entity  # 实体类包路径
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  mapper-locations: classpath*:mapper/**/*.xml
+  global-config:
+      db-config:
+          id-type: auto
+
+sa-token:
+  token-style: jwt
+  timeout: 2592000        # 30 天
+  active-timeout: -1
+  is-concurrent: false
+  is-share: false
+  jwt-secret-key: 1234567890abcdef1234567890abcdef
+
+aliyun:
+  oss:
+      endpoint: https://oss-cn-beijing.aliyuncs.com
+      bucketName: java-music-project
+      region: cn-beijing
+
+logging:
+  level:
+      org.springframework.web: debug
+
