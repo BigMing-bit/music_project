@@ -2,13 +2,14 @@ package com.pang.controller.admin;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.pang.common.Result;
-import com.pang.common.utils.IpUtil;
+import com.pang.common.CommonConstants; // 引入常量类
 import com.pang.entity.SysAdmin;
 import com.pang.entity.SysOperationLog;
 import com.pang.security.dto.AdminLoginDTO;
 import com.pang.service.AdminAuthService;
 import com.pang.service.AdminService;
 import com.pang.service.SysOperationLogService;
+import com.pang.common.utils.IpUtil;
 import com.pang.utils.SaTokenUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -35,10 +36,16 @@ public class AdminAuthController {
 
     @PostMapping("/login")
     public Result login(@RequestBody @Valid AdminLoginDTO dto, HttpServletRequest request) {
-
         SysAdmin admin = adminAuthService.login(dto.getUsername(), dto.getPassword());
+
         if (admin == null) {
-            return Result.error(401, "用户名或密码错误");
+            // 登录失败，用户名或密码错误
+            return Result.error(CommonConstants.LOGIN_FAILED, "用户名或密码错误");
+        }
+
+        if (admin.getStatus() == 0) {
+            // 账户禁用
+            return Result.error(CommonConstants.ACCOUNT_DISABLED, "账户已禁用，请联系管理员");
         }
 
         // ✅ 登录
@@ -55,6 +62,7 @@ public class AdminAuthController {
         update.setLastLoginTime(LocalDateTime.now());
         adminService.updateById(update);
 
+        // 记录操作日志
         SysOperationLog log = new SysOperationLog();
         log.setAdminId(admin.getId());
         log.setAdminUsername(admin.getUsername());
@@ -62,13 +70,11 @@ public class AdminAuthController {
         log.setAction("管理员登录");
         log.setMethod("POST");
         log.setPath("/admin/login");
-        log.setParams(null);                 // 登录一般不记参数
+        log.setParams(null); // 登录一般不记参数
         log.setIp(IpUtil.getClientIp(request));
         log.setSuccess(1);
         log.setCreateTime(LocalDateTime.now());
-
         operationLogService.save(log);
-        // 👈 这里交给 Service
 
         // ✅ 角色 & 权限
         List<String> roleList = adminAuthService.getRoleCodes(admin.getId());
@@ -86,6 +92,7 @@ public class AdminAuthController {
         data.put("displayName", admin.getDisplayName());
         data.put("permissions", permList);
         data.put("roles", roleList);
+
         return Result.success(data);
     }
 
@@ -102,5 +109,3 @@ public class AdminAuthController {
         return Result.success("你有 sys:admin:view 权限，可以访问");
     }
 }
-
-

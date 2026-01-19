@@ -2,6 +2,7 @@ package com.pang.controller.app;
 
 import cn.dev33.satoken.SaManager;
 import com.pang.common.Result;
+import com.pang.common.CommonConstants; // 引入常量类
 import com.pang.entity.User;
 import com.pang.entity.vo.UserVo;
 import com.pang.security.dto.*;
@@ -12,6 +13,7 @@ import com.pang.utils.SaTokenUtil;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,7 +30,7 @@ public class UserController {
         Long userId = SaTokenUtil.USER.getLoginIdAsLong();
         User user = userService.getById(userId);
         if (user == null) {
-            return Result.error(404, "用户不存在");
+            return Result.error(CommonConstants.NOT_FOUND, "用户不存在");
         }
         UserVo vo = new UserVo();
         vo.setId(user.getId());
@@ -48,7 +50,7 @@ public class UserController {
         // 校验验证码
         String rightCode = SaManager.getSaTokenDao().get("captcha:" + dto.getCaptchaId());
         if (rightCode == null || !rightCode.equalsIgnoreCase(dto.getCaptchaCode())) {
-            return Result.error(400, "验证码错误或已过期");
+            return Result.error(CommonConstants.INVALID_PARAMETER, "验证码错误或已过期");
         }
         // 删除验证码（防重放）
         SaManager.getSaTokenDao().delete("captcha:" + dto.getCaptchaId());
@@ -63,7 +65,7 @@ public class UserController {
         // 注册
         boolean isRegistered = userService.register(user);
 
-        return isRegistered ? Result.success("注册成功") : Result.error(500, "注册失败");
+        return isRegistered ? Result.success("注册成功") : Result.error(CommonConstants.FAIL, "注册失败");
     }
 
     // 用户登录接口
@@ -72,7 +74,7 @@ public class UserController {
         // 校验验证码
         String rightCode = SaManager.getSaTokenDao().get("captcha:" + dto.getCaptchaId());
         if (rightCode == null || !rightCode.equalsIgnoreCase(dto.getCaptchaCode())) {
-            return Result.error(400, "验证码错误或已过期");
+            return Result.error(CommonConstants.INVALID_PARAMETER, "验证码错误或已过期");
         }
         // 删除验证码（防重放）
         SaManager.getSaTokenDao().delete("captcha:" + dto.getCaptchaId());
@@ -80,16 +82,15 @@ public class UserController {
         // 调用登录服务
         User user = userService.login(dto.getUsername(), dto.getPassword());
         if (user == null) {
-            return Result.error(401, "用户名或密码错误");
+            return Result.error(CommonConstants.LOGIN_FAILED, "用户名或密码错误");
         }
-
 
         // 角色验证
         if (dto.getRole() == 1 && user.getRole() != 1) {
-            return Result.error(403, "只能以官方身份登录");
+            return Result.error(CommonConstants.PERMISSION_DENIED, "只能以普通用户身份登录");
         }
         if (dto.getRole() == 0 && user.getRole() != 0) {
-            return Result.error(403, "只能以普通用户身份登录");
+            return Result.error(CommonConstants.PERMISSION_DENIED, "只能以官方身份登录");
         }
 
         SaTokenUtil.USER.login(user.getId());
@@ -124,7 +125,7 @@ public class UserController {
 
         boolean updated = userService.updateById(updateUser);
 
-        return updated ? Result.success("更新成功") : Result.error(500, "更新失败");
+        return updated ? Result.success("更新成功") : Result.error(CommonConstants.FAIL, "更新失败");
     }
 
     // 修改密码
@@ -134,7 +135,7 @@ public class UserController {
 
         boolean ok = userService.changePassword(userId, dto.getOldPassword(), dto.getNewPassword());
         if (!ok) {
-            return Result.error(400, "旧密码错误或修改失败");
+            return Result.error(CommonConstants.INVALID_PARAMETER, "旧密码错误或修改失败");
         }
 
         // 修改密码成功后强制下线

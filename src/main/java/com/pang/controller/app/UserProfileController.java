@@ -1,9 +1,12 @@
 package com.pang.controller.app;
 
+import com.pang.common.CommonConstants;
 import com.pang.common.Result;
+import com.pang.entity.User;
 import com.pang.service.*;
 import com.pang.utils.SaTokenUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import io.swagger.annotations.Api;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import com.pang.entity.vo.MyPlaylistVO;
 
@@ -11,22 +14,23 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/app/user")
-public class UserMusicController {
+@Api(tags = "用户信息")
+@RequiredArgsConstructor
+public class UserProfileController {
 
-    @Autowired
-    private SongLikeService songLikeService;
-    @Autowired
-    private PlayHistoryService playHistoryService;
+    private final SongLikeService songLikeService;
 
-    // ✅ 新增：个人信息 & 统计 & 歌单
-    @Autowired
-    private AppUserProfileService appUserProfileService;
-    @Autowired
-    private PlaylistLikeService playlistLikeService;
-    @Autowired
-    private AlbumLikeService albumLikeService;
-    @Autowired
-    private PlaylistService playlistService;
+    private final PlayHistoryService playHistoryService;
+
+    private final AppUserProfileService appUserProfileService;
+
+    private final PlaylistLikeService playlistLikeService;
+
+    private final AlbumLikeService albumLikeService;
+
+    private final PlaylistService playlistService;
+
+    private final UserService userService;
 
     // ✅ 我的收藏歌曲
     @GetMapping("/liked-songs")
@@ -87,6 +91,10 @@ public class UserMusicController {
     @GetMapping("/me")
     public Result me() {
         Long userId = SaTokenUtil.USER.getLoginIdAsLong();
+        User user = userService.getById(userId);
+        if (user == null) {
+            return Result.error(CommonConstants.NOT_FOUND, "用户不存在");
+        }
         return Result.success(appUserProfileService.getMe(userId));
     }
 
