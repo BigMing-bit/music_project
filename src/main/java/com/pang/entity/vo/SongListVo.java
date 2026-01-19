@@ -12,6 +12,7 @@ public class SongListVo {
     private Long singerId;
     private String singerName;
     private String singerAvatarUrl;
+    private Long albumId;
     private String albumName;
 
     private String coverUrl;

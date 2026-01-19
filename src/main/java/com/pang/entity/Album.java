@@ -9,7 +9,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Date;
+
 
 @Data
 @TableName("music_album")
@@ -18,6 +18,7 @@ public class Album {
     private Long id;
     private String albumName;
     private Long singerId;
+    private String singerName;
     private String coverUrl;
 
     @DateTimeFormat(pattern = "yyyy-MM-dd")

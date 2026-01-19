@@ -15,6 +15,7 @@ public class Song {
     private String songName;
     private Long singerId;
     private Long albumId;
+    private String albumName;
     private Integer durationSeconds;
     private String coverUrl;
     private String audioUrl;

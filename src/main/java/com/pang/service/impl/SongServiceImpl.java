@@ -5,9 +5,11 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.pang.entity.Album;
 import com.pang.entity.Song;
 import com.pang.entity.vo.OptionVo;
 import com.pang.entity.vo.SongVo;
+import com.pang.mapper.AlbumMapper;
 import com.pang.mapper.SongMapper;
 import com.pang.service.SongService;
 import lombok.extern.slf4j.Slf4j;
@@ -21,9 +23,11 @@ import java.util.List;
 public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements SongService {
 
     private final SongMapper songMapper;
+    private final AlbumMapper albumMapper;
 
-    public SongServiceImpl(SongMapper songMapper) {
+    public SongServiceImpl(SongMapper songMapper, AlbumMapper albumMapper) {
         this.songMapper = songMapper;
+        this.albumMapper = albumMapper;
     }
 
     // 根据ID查询歌曲详情
@@ -119,4 +123,19 @@ public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements So
         return this.baseMapper.selectSongOptionsByIds(ids);
     }
 
-}
+    @Override
+    public void updateAlbumName(Long songId) {
+        // 查询歌曲信息
+        Song song = songMapper.selectById(songId);
+        if (song != null && song.getAlbumId() != null) {
+            // 获取专辑信息
+            Album album = albumMapper.selectById(song.getAlbumId());
+            if (album != null) {
+                // 更新歌曲表中的 albumName 字段
+                song.setAlbumName(album.getAlbumName());
+                // 更新数据库中的歌曲记录
+                songMapper.updateById(song);
+            }
+        }
+    }
+ }

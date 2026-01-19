@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pang.mapper.DashboardMapper">
+    
+    <!-- 统计：一次查出多个数字 -->
+    <select id="stats" resultType="com.pang.entity.vo.DashboardVo$Stats">
+        SELECT
+          (SELECT COUNT(*) FROM app_user) AS userCount,
+          (SELECT COUNT(*) FROM music_song) AS songCount,
+          (SELECT COUNT(*) FROM music_album) AS albumCount,
+          (SELECT COUNT(*) FROM music_singer) AS singerCount,
+          (SELECT COUNT(*) FROM music_comment) AS commentTotal,
+          (SELECT COUNT(*) FROM music_play_history) AS playCountTotal,
+          (SELECT COUNT(*) FROM music_song_like) AS likeCountTotal,
+          (SELECT COUNT(*) FROM music_favorite_playlist) AS favPlaylistTotal,
+          (SELECT COUNT(*) FROM music_play_history WHERE play_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)) AS playCount7d
+    </select>
+    
+    <!-- 7天播放趋势 -->
+    <select id="playTrend7d" resultType="com.pang.entity.vo.DashboardVo$TrendPoint">
+        SELECT DATE(play_time) AS day, COUNT(*) AS count
+        FROM music_play_history
+        WHERE play_time >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+        GROUP BY DATE(play_time)
+        ORDER BY day
+    </select>
+    
+    <!-- 最近新增歌曲（带 singerName） -->
+    <select id="latestSongs" resultType="com.pang.entity.vo.DashboardVo$LatestSong">
+        SELECT
+          s.id AS id,
+          s.song_name AS songName,
+          si.name AS singerName,
+          s.play_count AS playCount,
+          DATE_FORMAT(s.create_time, '%Y-%m-%d %H:%i:%s') AS createTime
+        FROM music_song s
+        LEFT JOIN music_singer si ON si.id = s.singer_id
+        ORDER BY s.create_time DESC
+        LIMIT 10
+    </select>
+    
+    <!-- 最近操作日志 -->
+    <select id="latestLogs" resultType="com.pang.entity.vo.DashboardVo$OpLog">
+        SELECT
+          id,
+          module,
+          admin_username,
+          method,
+          ip,
+          path,
+          action,
+          success,
+          DATE_FORMAT(create_time, '%Y-%m-%d %H:%i:%s') AS createTime
+        FROM sys_operation_log
+        ORDER BY create_time DESC
+        LIMIT 10
+    </select>
+    
+</mapper>

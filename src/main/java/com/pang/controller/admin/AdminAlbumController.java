@@ -50,6 +50,8 @@ public class AdminAlbumController extends BaseController {
         if (album.getId() == null)
             album.setCreateTime(LocalDateTime.now());
         albumService.saveOrUpdate(album);
+        // 更新专辑的歌手名称
+        albumService.updateSingerName(album.getId());
         return Result.success("保存成功");
     }
 
@@ -59,6 +61,8 @@ public class AdminAlbumController extends BaseController {
     public Result update(@Validated @RequestBody Album album) {
         album.setUpdateTime(LocalDateTime.now());
         albumService.updateById(album);
+        // 更新专辑的歌手名称
+        albumService.updateSingerName(album.getId());
         return Result.success("更新成功");
     }
 

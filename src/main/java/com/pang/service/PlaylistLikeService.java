@@ -7,6 +7,5 @@ public interface PlaylistLikeService {
 
     CursorPageResult<PlaylistVo> getMyLikedPlaylists(Long userId, String cursor, Integer size);
 
-
 }
 

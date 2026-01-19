@@ -14,7 +14,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.validation.annotation.Validated;
+
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -39,6 +39,7 @@ public class AdminSongController extends BaseController {
            song.setCreateTime(LocalDateTime.now());
           }
        songService.saveOrUpdate(song);
+       songService.updateAlbumName(song.getId());
         return Result.success("新添成功");
     }
 
@@ -47,6 +48,7 @@ public class AdminSongController extends BaseController {
     @ApiOperation("更新歌曲")
     public Result updateSong(@RequestBody Song song) {
       songService.updateById(song);
+      songService.updateAlbumName(song.getId());
       return Result.success("更新成功");
     }
 

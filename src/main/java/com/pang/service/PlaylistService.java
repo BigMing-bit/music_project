@@ -19,7 +19,6 @@ public interface PlaylistService extends IService<Playlist> {
 
     CursorPageResult<SongListVo> getPlaylistSongsCursor(Long playlistId, String cursor, Integer size);
 
-    CursorPageResult<PlaylistHomeVo> getOfficialPlaylists(String cursor, Integer size);
 
     IPage<PlaylistVo> pageVo(int pageNum, int pageSize, String keyword, Integer status);
 

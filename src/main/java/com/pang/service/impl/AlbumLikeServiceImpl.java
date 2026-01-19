@@ -55,7 +55,7 @@ public class AlbumLikeServiceImpl implements AlbumLikeService {
 
         // 处理游标分页
         if (cursor != null && !cursor.isBlank()) {
-            qw.lt(AlbumFavorite::getId, Long.parseLong(cursor));  // 使用游标ID来分页
+            qw.lt(AlbumFavorite::getId, Long.parseLong(cursor));
         }
         qw.last("LIMIT " + size);
 
@@ -77,12 +77,15 @@ public class AlbumLikeServiceImpl implements AlbumLikeService {
             return result;
         }
 
-        // 批量查询专辑信息
-        List<Album> albums = albumMapper.selectList(
-                new LambdaQueryWrapper<Album>()
-                        .in(Album::getId, albumIds)
-                        .eq(Album::getStatus, 1)
-        );
+        // 批量查询专辑信息，并加入歌手名称
+        List<Album> albums = albumMapper.selectBatchIds(albumIds);
+
+        // 获取每个专辑的歌手名称
+        for (Album album : albums) {
+            // 使用自定义查询方法查询专辑和歌手名称
+            Album albumWithSingerName = albumMapper.selectAlbumWithSingerName(album.getId());
+            album.setSingerName(albumWithSingerName.getSingerName()); // 设置歌手名称
+        }
 
         // 按收藏顺序排序并转换为 VO
         Map<Long, Integer> orderMap = new HashMap<>();
@@ -92,16 +95,20 @@ public class AlbumLikeServiceImpl implements AlbumLikeService {
 
         List<AlbumVo> voList = albums.stream()
                 .sorted(Comparator.comparingInt(p -> orderMap.getOrDefault(p.getId(), Integer.MAX_VALUE)))
-                .map(p -> {
-                    AlbumVo vo = new AlbumVo();
-                    vo.setId(p.getId());
-                    vo.setAlbumName(p.getAlbumName());
-                    vo.setSingerId(p.getSingerId());
-                    vo.setCoverUrl(p.getCoverUrl());
-                    vo.setPublishDate(p.getPublishDate());
-                    vo.setCollectCount(p.getCollectCount());
-                    return vo;
-                })
+                .map(p ->
+                    AlbumVo.builder()
+                            .id(p.getId())
+                            .albumId(p.getId())
+                            .albumName(p.getAlbumName())
+                            .singerId(p.getSingerId())
+                            .singerName(p.getSingerName())
+                            .coverUrl(p.getCoverUrl())
+                            .publishDate(p.getPublishDate())
+                            .collectCount(p.getCollectCount())
+                            .status(p.getStatus())
+                            .createTime(p.getCreateTime())
+                            .build()
+                )
                 .collect(Collectors.toList());
 
         result.setList(voList);

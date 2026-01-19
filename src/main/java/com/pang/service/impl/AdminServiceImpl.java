@@ -8,16 +8,15 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pang.entity.SysAdmin;
 import com.pang.mapper.SysAdminMapper;
 import com.pang.service.AdminService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class AdminServiceImpl extends ServiceImpl<SysAdminMapper, SysAdmin> implements AdminService {
 
     private final SysAdminMapper adminMapper;
 
-    public AdminServiceImpl(SysAdminMapper adminMapper) {
-        this.adminMapper = adminMapper;
-    }
 
     @Override
     public SysAdmin getById(Long id) {

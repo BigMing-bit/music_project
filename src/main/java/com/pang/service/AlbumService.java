@@ -14,7 +14,6 @@ public interface AlbumService extends IService<Album> {
 
     CursorPageResult<SongListVo> getAlbumSongs(Long albumId, String cursor, Integer size);
 
-    List<SelectOptionVo> selectOptions(String keyword);
 
     IPage<AlbumVo> getAlbumPage(String name, Long singerId, Integer page, Integer pageSize);
 
@@ -23,4 +22,6 @@ public interface AlbumService extends IService<Album> {
     IPage<AlbumVo> adminPageVo(AlbumQueryParam albumQueryParam);
 
     List<OptionVo> adminSelectOptions(String keyword);
+
+    void updateSingerName(Long albumId);
 }

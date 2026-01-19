@@ -39,5 +39,6 @@ public interface SongService extends IService<Song> {
 
     List<OptionVo> selectSongOptionsByIds(List<Long> ids);
 
+    void updateAlbumName(Long songId);
 
-}
+ }

@@ -1,6 +1,5 @@
 package com.pang.service.impl;
 
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -31,6 +30,9 @@ public class AlbumServiceImpl extends ServiceImpl<AlbumMapper, Album> implements
 
     @Autowired
     private SongMapper songMapper;
+
+    @Autowired
+    private AlbumMapper albumMapper;
 
        /**
     * 获取专辑详情信息（包含关联的歌手名称）
@@ -147,28 +149,6 @@ public class AlbumServiceImpl extends ServiceImpl<AlbumMapper, Album> implements
         }
         return map;
     }
-
-
-
-    @Override
-    public List<SelectOptionVo> selectOptions(String keyword) {
-
-        LambdaQueryWrapper<Album> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Album::getStatus, 1);
-
-        if (StrUtil.isNotBlank(keyword)) {
-            wrapper.like(Album::getAlbumName, keyword); // 这里字段按你表来
-        }
-
-        wrapper.orderByAsc(Album::getAlbumName);
-
-        return this.list(wrapper).stream()
-                .map(a -> new SelectOptionVo(a.getId(), a.getAlbumName()))
-                .toList();
-    }
-
-
-
      @Override
     public IPage<AlbumVo> adminPageVo(AlbumQueryParam albumQueryParam) {
         Page<Album> page = new Page<>(albumQueryParam.getPageNum(), albumQueryParam.getPageSize());
@@ -198,7 +178,19 @@ public class AlbumServiceImpl extends ServiceImpl<AlbumMapper, Album> implements
         return albumLikeService.toggleFavorite(userId, albumId);
     }
 
-
-
-
+    @Override
+    public void updateSingerName(Long albumId) {
+        // 查询专辑信息
+        Album album = albumMapper.selectById(albumId);
+        if (album != null && album.getSingerId() != null) {
+            // 获取歌手信息
+            Singer singer = singerMapper.selectById(album.getSingerId());
+            if (singer != null) {
+                // 更新专辑表中的 singerName 字段
+                album.setSingerName(singer.getName());
+                // 更新数据库中的专辑记录
+                albumMapper.updateById(album);
+            }
+        }
+    }
 }

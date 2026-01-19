@@ -113,10 +113,5 @@ public class PlaylistLikeServiceImpl extends BaseFavoriteService<PlaylistFavorit
         return result;
     }
 
-    @Override
-    public List<PlaylistVo> getMyLikedItems(Long userId, Integer page, Integer pageSize) {
-        // 实现传统分页（如果需要）
-        return Collections.emptyList();
-    }
 
 }

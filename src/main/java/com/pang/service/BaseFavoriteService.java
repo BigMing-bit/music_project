@@ -3,7 +3,7 @@ package com.pang.service;
 import com.pang.entity.BaseFavorite;
 import com.pang.entity.vo.CursorPageResult;
 
-import java.util.List;
+
 
 /**
  * 通用收藏服务基类
@@ -70,14 +70,5 @@ public abstract class BaseFavoriteService<F extends BaseFavorite, T, VO> {
      * @return 收藏列表
      */
     public abstract CursorPageResult<VO> getMyLikedItems(Long userId, String cursor, Integer size);
-
-    /**
-     * 获取我的收藏列表（传统分页）
-     * @param userId 用户ID
-     * @param page 页码
-     * @param pageSize 每页大小
-     * @return 收藏列表
-     */
-    public abstract List<VO> getMyLikedItems(Long userId, Integer page, Integer pageSize);
 
 }

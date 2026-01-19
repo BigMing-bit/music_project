@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pang.mapper.AlbumMapper">
+
+    <!-- 选择专辑选项 -->
+    <select id="selectOptions" resultType="com.pang.entity.vo.OptionVo">
+        SELECT id AS value, album_name AS label
+        FROM music_album
+        WHERE status = 1
+        <if test="keyword != null and keyword.trim() != ''">
+            AND album_name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        ORDER BY id DESC
+        LIMIT 50
+    </select>
+
+    <!-- 分页查询专辑VO -->
+    <select id="pageAlbumVo" resultType="com.pang.entity.vo.AlbumVo">
+        SELECT
+        a.id AS id,
+        a.id AS albumId,
+        a.album_name AS albumName,
+        a.singer_id AS singerId,
+        s.name AS singerName,
+        a.cover_url AS coverUrl,
+        a.publish_date AS publishDate,
+        a.collect_count AS collectCount,
+        a.status,
+        a.create_time AS createTime,
+        a.update_time AS updateTime
+        FROM music_album a
+        LEFT JOIN music_singer s ON a.singer_id = s.id
+        WHERE 1 = 1
+        <if test="keyword != null and keyword.trim() != ''">
+            AND a.album_name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="status != null">
+            AND a.status = #{status}
+        </if>
+        <if test="singerId != null">
+            AND a.singer_id = #{singerId}
+        </if>
+        ORDER BY a.id DESC
+    </select>
+
+    <!-- 插入专辑收藏记录 -->
+    <insert id="insertCollect">
+        INSERT INTO music_favorite_album(user_id, album_id, status, create_time)
+        VALUES(#{userId}, #{albumId}, 1, NOW())
+            ON DUPLICATE KEY UPDATE status = 1, create_time = NOW()
+    </insert>
+
+    <!-- 删除专辑收藏记录 -->
+    <delete id="deleteCollect">
+        DELETE FROM music_favorite_album
+        WHERE user_id = #{userId} AND album_id = #{albumId}
+    </delete>
+
+    <!-- 统计专辑收藏次数 -->
+    <select id="countUserFavorite" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM music_favorite_album
+        WHERE user_id = #{userId}
+          AND album_id = #{albumId}
+          AND status = 1
+    </select>
+
+    <!-- 更新专辑收藏数 -->
+    <update id="updateCollectCount">
+        UPDATE music_album
+        SET collect_count = collect_count + #{delta}
+        WHERE id = #{albumId}
+    </update>
+
+    <!-- 查询专辑并包含歌手名称 -->
+    <select id="selectAlbumWithSingerName" resultType="com.pang.entity.Album">
+        SELECT a.*, s.name AS singerName
+        FROM music_album a
+                 LEFT JOIN music_singer s ON a.singer_id = s.id
+        WHERE a.id = #{id}
+    </select>
+
+</mapper>

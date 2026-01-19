@@ -99,7 +99,6 @@ public class HomeServiceImpl implements HomeService {
         }
     }
 
-    // 通用：要求 VO 里有 getScore/getId
     private <T> CursorPageResult<T> toCursorPage(List<T> list) {
         CursorPageResult<T> r = new CursorPageResult<>();
         r.setList(list);
@@ -110,8 +109,6 @@ public class HomeServiceImpl implements HomeService {
             r.setHasMore(false);
             return r;
         }
-
-        // 反射读 score/id（你嫌反射慢就分别写 3 个版本，我给你也行）
         T last = list.get(list.size() - 1);
         try {
             Long score = (Long) last.getClass().getMethod("getScore").invoke(last);

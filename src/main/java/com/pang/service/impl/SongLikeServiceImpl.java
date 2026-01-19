@@ -2,11 +2,13 @@ package com.pang.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.pang.entity.Album;
 import com.pang.entity.Singer;
 import com.pang.entity.Song;
 import com.pang.entity.SongLike;
 import com.pang.entity.vo.CursorPageResult;
 import com.pang.entity.vo.SongListVo;
+import com.pang.mapper.AlbumMapper;
 import com.pang.mapper.SingerMapper;
 import com.pang.mapper.SongLikeMapper;
 import com.pang.mapper.SongMapper;
@@ -24,6 +26,7 @@ public class SongLikeServiceImpl extends BaseFavoriteService<SongLike, Song, Son
     @Autowired private SongLikeMapper songLikeMapper;
     @Autowired private SongMapper songMapper;
     @Autowired private SingerMapper singerMapper;
+    @Autowired private AlbumMapper albumMapper;
 
     @Override
     public boolean toggleLike(Long songId, Long userId) {
@@ -122,6 +125,9 @@ public class SongLikeServiceImpl extends BaseFavoriteService<SongLike, Song, Son
 
         // singerName 映射
         Map<Long, String> singerMap = getSingerMap(songs);
+        
+        // albumName 映射
+        Map<Long, String> albumMap = getAlbumMap(songs);
 
         // 按 likes 顺序还原
         Map<Long, Integer> orderMap = new HashMap<>();
@@ -130,8 +136,13 @@ public class SongLikeServiceImpl extends BaseFavoriteService<SongLike, Song, Son
 
         List<SongListVo> voList = songs.stream().map(s ->
             SongListVo.builder()
+                .id(s.getId())
                 .songName(s.getSongName())
+                .singerId(s.getSingerId())
                 .singerName(singerMap.get(s.getSingerId()))
+                .singerAvatarUrl(null) // 歌曲表中没有歌手头像URL，需要额外查询
+                .albumId(s.getAlbumId())
+                .albumName(albumMap.get(s.getAlbumId()))
                 .coverUrl(s.getCoverUrl())
                 .audioUrl(s.getAudioUrl())
                 .playCount(s.getPlayCount())
@@ -147,11 +158,6 @@ public class SongLikeServiceImpl extends BaseFavoriteService<SongLike, Song, Son
         return result;
     }
 
-    @Override
-    public List<SongListVo> getMyLikedItems(Long userId, Integer page, Integer pageSize) {
-        // 实现传统分页（如果需要）
-        return Collections.emptyList();
-    }
 
     private Map<Long, String> getSingerMap(List<Song> songs) {
         List<Long> singerIds = songs.stream().map(Song::getSingerId).filter(Objects::nonNull).distinct().toList();
@@ -162,5 +168,16 @@ public class SongLikeServiceImpl extends BaseFavoriteService<SongLike, Song, Son
         );
 
         return singers.stream().collect(Collectors.toMap(Singer::getId, Singer::getName, (a, b) -> a));
+    }
+
+    private Map<Long, String> getAlbumMap(List<Song> songs) {
+        List<Long> albumIds = songs.stream().map(Song::getAlbumId).filter(Objects::nonNull).distinct().toList();
+        if (albumIds.isEmpty()) return new HashMap<>();
+
+        List<Album> albums = albumMapper.selectList(
+                new LambdaQueryWrapper<Album>().in(Album::getId, albumIds).eq(Album::getStatus, 1)
+        );
+
+        return albums.stream().collect(Collectors.toMap(Album::getId, Album::getAlbumName, (a, b) -> a));
     }
 }

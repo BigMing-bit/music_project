@@ -3,8 +3,6 @@ package com.pang.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.core.toolkit.BeanUtils;
-import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pang.entity.*;
@@ -14,7 +12,6 @@ import com.pang.security.dto.PlaylistSaveDTO;
 import com.pang.service.PlaylistService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,7 +36,6 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
 
     private final UserMapper userMapper;
 
-    private final SysAdminMapper sysAdminMapper;
 
     private final PlaylistTagMapper playlistTagMapper;
     private final TagMapper tagMapper;
@@ -94,58 +90,6 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
 
         return result;
     }
-
-    @Override
-    public CursorPageResult<PlaylistHomeVo> getOfficialPlaylists(String cursor, Integer size) {
-
-        LambdaQueryWrapper<Playlist> qw = new LambdaQueryWrapper<>();
-        qw.eq(Playlist::getStatus, 1);
-
-        // cursor：使用 createTime 做游标（简单稳定）
-        if (cursor != null && !cursor.isBlank()) {
-            // 验证是否为有效的日期时间格式
-            if (isValidDateTimeFormat(cursor)) {
-                try {
-                    DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-                    LocalDateTime dateTime = LocalDateTime.parse(cursor, formatter);
-                    qw.lt(Playlist::getCreateTime, dateTime);
-                } catch (DateTimeParseException e) {
-                    log.error("Failed to parse date string: {}, error: {}", cursor, e.getMessage());
-                }
-            } else {
-                log.warn("Invalid cursor format received: {}", cursor);
-            }
-        }
-
-        // 最热排序：收藏数 desc
-        qw.orderByDesc(Playlist::getCollectCount)
-                .orderByDesc(Playlist::getCreateTime)
-                .last("LIMIT " + size);
-
-        List<Playlist> playlists = playlistMapper.selectList(qw);
-
-        List<PlaylistHomeVo> list = playlists.stream().map(p ->
-            PlaylistHomeVo.builder()
-                    .id(p.getId())
-                    .name(p.getName())
-                    .coverUrl(p.getCoverUrl())
-                    .collectCount(p.getCollectCount()) // ✅ 用 collectCount 作为播放量/热度展示
-                    .build()
-        ).toList();
-
-        CursorPageResult<PlaylistHomeVo> result = new CursorPageResult<>();
-        result.setList(list);
-        result.setHasMore(playlists.size() == size);
-
-        if (!playlists.isEmpty()) {
-            result.setNextCursor(playlists.get(playlists.size() - 1).getCreateTime().toString());
-        }
-
-        return result;
-    }
-
-    // ✅ 歌单详情头部信息
-
     @Override
     public PlaylistDetailVo getPlaylistDetail(Long playlistId, Long userId) {
         PlaylistDetailVo vo = playlistMapper.selectDetail(playlistId);
@@ -393,10 +337,6 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
         if (dto.getSongIds() != null && !dto.getSongIds().isEmpty()) {
             playlistSongMapper.insertBatch(playlistId, dto.getSongIds());
         }
-
-
-        // 1) dto.tagIds == null：表示前端没传，保持原标签不变（不要删）
-        // 2) dto.tagIds != null：表示前端明确要更新（可为空数组，代表清空）
         if (dto.getTagIds() != null) {
             playlistTagMapper.deleteByPlaylistId(playlistId);
             if (!dto.getTagIds().isEmpty()) {
@@ -417,12 +357,12 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
         User me = userMapper.selectById(operatorUserId);
         if (me == null) throw new RuntimeException("用户不存在");
 
-        Integer myRole = me.getRole() == null ? 0 : me.getRole();
+        int myRole = me.getRole() == null ? 0 : me.getRole();
 
         // 歌单创建者
         Long creatorUserId = db.getCreatorUserId();
         User creator = creatorUserId == null ? null : userMapper.selectById(creatorUserId);
-        Integer creatorRole = (creator == null || creator.getRole() == null) ? 0 : creator.getRole();
+        int creatorRole = (creator == null || creator.getRole() == null) ? 0 : creator.getRole();
 
         // ✅ 权限判断
         if (myRole == 0) {
@@ -437,7 +377,6 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
             }
         }
 
-        // ✅ 强制归属（防前端篡改）
         dto.setId(playlistId);
         dto.setCreatorUserId(creatorUserId);
 

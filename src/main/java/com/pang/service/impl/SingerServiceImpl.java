@@ -185,19 +185,6 @@ public class SingerServiceImpl extends ServiceImpl<SingerMapper, Singer> impleme
         return result;
     }
 
-    // ✅ App 下拉：SelectOptionVo(id,name)
-    @Override
-    public List<SelectOptionVo> selectSingerSelectOptions(String keyword) {
-        LambdaQueryWrapper<Singer> qw = new LambdaQueryWrapper<>();
-        qw.eq(Singer::getStatus, 1)
-                .like(StrUtil.isNotBlank(keyword), Singer::getName, keyword)
-                .orderByAsc(Singer::getName);
-
-        return this.list(qw).stream()
-                .map(s -> new SelectOptionVo(s.getId(), s.getName()))
-                .toList();
-    }
-
     // ✅ 管理端分页：Singer 实体
     @Override
     public IPage<Singer> adminPage(Integer pageNum, Integer pageSize, String keyword, Integer status, Integer gender) {

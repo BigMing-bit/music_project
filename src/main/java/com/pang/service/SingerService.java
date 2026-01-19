@@ -19,13 +19,8 @@ public interface SingerService extends IService<Singer> {
     Page<SingerVo> getSingerPage(String name, Integer gender, Integer area, Integer style, Integer status, Integer page, Integer pageSize);
     Page<SongVo> getSingerSongsPage(Long singerId, String orderBy, Integer page, Integer pageSize);
 
-    // ✅ App 下拉（只返回启用歌手）
-    List<SelectOptionVo> selectSingerSelectOptions(String keyword);
-
-
     // ===== 管理端 =====
     IPage<Singer> adminPage(Integer pageNum, Integer pageSize, String keyword, Integer status, Integer gender);
 
-    // ✅ 管理端下拉（OptionVo: value/label）
     List<OptionVo> adminSelectOptions(String keyword);
 }
