@@ -217,14 +217,13 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue"
 import { useRouter } from "vue-router"
 import { ElMessage } from "element-plus"
-import { getHome, getHomeBanners, getHomePlaylists } from "@/api/app/home"
-// ✅ 这里用你已经有的 playPlaylist（只给按钮用）
+import { getHome, getHomeBanners } from "@/api/app/home"
+
 import { playPlaylist } from "@/api/app/playlist.js"
 import { getRecommendPlaylists, getRecommendPlaylistsWithFilter } from "@/api/app/reco.js"
 import { useUserStore } from "@/store/user"
 
-// 如果你要用更标准的“歌单推荐卡片接口”，替换 refreshPlaylists/loadHome 的 playlists 获取：
-// import { getPlaylistHome } from "@/api/app/playlist.js"
+
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -238,8 +237,6 @@ const playlistScroll = ref(null)
 const albumScroll = ref(null)
 const mvScroll = ref(null)
 
-const pHover = ref(false)
-const aHover = ref(false)
 
 /* ===== banner 滚动渐隐 ===== */
 const scrollY = ref(0)
@@ -399,15 +396,12 @@ async function playAndGoPlayer(id) {
   // 1️⃣ 静默 +1 播放量
   try {
     await playPlaylist(id)
-
-    // 可选：让首页数字立刻变化（体验更真实）
     const it = playlists.value.find(p => p.id === id)
     if (it) it.playCount = (it.playCount ?? 0) + 1
   } catch (e) {
-    // 不提示，符合你的要求
+    ElMessage.error("操作失败")
   }
 
-  // 2️⃣ 跳转播放页（你自己的 Player 页面）
   router.push({
     path: "/app/player",
     query: { playlistId: id }
@@ -480,7 +474,7 @@ onBeforeUnmount(() => {
 .home-inner{
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 82px;
+  padding: 0 60px;
 }
 .h-scroll-inner::-webkit-scrollbar {
   display: none; /* 隐藏滚动条 */
@@ -686,8 +680,8 @@ onBeforeUnmount(() => {
 .cover-card:hover{ transform: translateY(-3px); }
 
 .cover{
-  width: 227px;
-  height: 227px;
+  width: 245px;
+  height: 245px;
   background:#e9e9e9;
   overflow:hidden;
   position: relative;

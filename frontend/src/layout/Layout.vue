@@ -4,8 +4,6 @@
     <header class="header">
       <div class="header-left">
         <span class="logo" @click="$router.push('/admin/index')">Harmony · 音乐管理平台</span>
-        <span class="logo2">Harmony 听见世界的和声</span>
-
       </div>
 
       <div class="header-right">
@@ -259,13 +257,6 @@ onMounted(async () => {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 1px;
-}
-
-.logo2{
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  padding-left: 500px;
 }
 
 .user-info {

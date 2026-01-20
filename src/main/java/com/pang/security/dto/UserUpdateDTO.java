@@ -7,5 +7,8 @@ public class UserUpdateDTO {
     private String nickname;
     private String email;
     private String phone;
+    private Integer status;
+    private Integer gender;
+
     private String avatarUrl;
 }

@@ -9,6 +9,7 @@ public class UserVo {
     private String nickname;
     private String email;
     private String phone;
+    private Integer gender;
     private String avatarUrl;
     private Integer status;
     private Integer role;

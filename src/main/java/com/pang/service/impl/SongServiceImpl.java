@@ -12,6 +12,7 @@ import com.pang.entity.vo.SongVo;
 import com.pang.mapper.AlbumMapper;
 import com.pang.mapper.SongMapper;
 import com.pang.service.SongService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -20,24 +21,18 @@ import java.util.List;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements SongService {
 
     private final SongMapper songMapper;
     private final AlbumMapper albumMapper;
 
-    public SongServiceImpl(SongMapper songMapper, AlbumMapper albumMapper) {
-        this.songMapper = songMapper;
-        this.albumMapper = albumMapper;
-    }
-
-    // 根据ID查询歌曲详情
     @Override
     public SongVo getSongDetail(Long id) {
         return songMapper.selectDetailById(id);
     }
 
     @Override
-    // 根据歌手ID查询歌曲
     public List<SongVo> getSongsBySinger(Long singerId) {
         return songMapper.selectBySingerId(singerId);
     }
@@ -70,25 +65,17 @@ public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements So
 
         LambdaQueryWrapper<Song> wrapper = new LambdaQueryWrapper<>();
 
-        // ✅ 默认查上架歌曲
         wrapper.eq(Song::getStatus, 1);
-
-        // ✅ 关键词搜索（歌名）
         if (StringUtils.hasText(keyword)) {
             wrapper.like(Song::getSongName, keyword);
         }
 
-        // ✅ 歌手筛选
         if (singerId != null) {
             wrapper.eq(Song::getSingerId, singerId);
         }
-
-        // ✅ 专辑筛选
         if (albumId != null) {
             wrapper.eq(Song::getAlbumId, albumId);
         }
-
-        // ✅ 排序：hot/new/like
         if ("hot".equalsIgnoreCase(orderBy)) {
             wrapper.orderByDesc(Song::getPlayCount);
         } else if ("like".equalsIgnoreCase(orderBy)) {

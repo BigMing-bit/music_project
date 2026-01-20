@@ -59,6 +59,22 @@ export const getOfficialPlaylists = (params) => {
     })
 }
 
+
+export const getPlaylistsByTag = (params) => {
+    // 确保 tagIds 为数组，并且转为逗号分隔的字符串
+    const tagIds = params.tagIds || [];
+    const tags = Array.isArray(tagIds) ? tagIds.join(',') : '';  // 如果为空数组，则传递空字符串
+    return request({
+        url: "/app/playlists/list",
+        method: "get",
+        params: {
+            tagIds: tags,
+            page: params.page || 1,
+            size: params.size || 20
+        }
+    });
+};
+
 /**
  * 点击播放歌单：播放量 +1
  * POST /app/playlists/{id}/play

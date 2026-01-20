@@ -8,4 +8,6 @@ public interface SysOperationLogService extends IService<SysOperationLog> {
     IPage<SysOperationLog> adminPage(Integer pageNum, Integer pageSize,
                                      String keyword, Integer success);
 
+
+
 }

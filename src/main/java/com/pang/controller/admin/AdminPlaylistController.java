@@ -66,6 +66,7 @@ public class AdminPlaylistController {
         vo.setDescription(p.getDescription());
         vo.setCoverUrl(p.getCoverUrl());
         vo.setStatus(p.getStatus());
+        vo.setCreatorUserId(p.getCreatorUserId());
 
         return Result.success(vo);
     }

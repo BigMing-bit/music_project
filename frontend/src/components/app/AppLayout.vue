@@ -8,8 +8,8 @@
           <span class="nav-item" :class="{ active: isActive('/app/index') }" @click="router.push('/app/index')">首页</span>
           <span class="nav-item" :class="{ active: isActive('/app/singers') }" @click="router.push('/app/singers')">歌手</span>
           <span class="nav-item" :class="{ active: isActive('/app/albums') }" @click="router.push('/app/albums')">新碟</span>
-          <span class="nav-item" @click="comingSoon">排行榜</span>
-          <span class="nav-item" @click="comingSoon">分类歌单</span>
+          <span class="nav-item" @click="comingSoon" >排行榜</span>
+          <span class="nav-item" :class="{ active: isActive('/app/playlists') }" @click="router.push('/app/playlists')">分类歌单</span>
           <span class="nav-item" @click="comingSoon">雷达</span>
           <span class="nav-item" @click="comingSoon">MV</span>
           <span class="nav-item" @click="comingSoon">数字专辑</span>
@@ -96,7 +96,7 @@ onMounted(() => {
 .app-shell { min-height: 100vh; background: #f5f5f5;}
 
 .app-header {
-  height: 80px; background: #4acd8f;
+  height: 80px; background: #fff1f0;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 20px; position: sticky; top: 0; z-index: 10;
 }
@@ -104,7 +104,7 @@ onMounted(() => {
 .logo { font-weight: 800; font-size: 18px; cursor: pointer; color: #1890ff; margin-right: 30px; }
 .nav { display: flex; gap: 23px; }
 .nav-item { cursor: pointer; padding: 8px 10px; font-size: 16px; color: #333; position: relative; }
-.nav-item:hover { color: #1890ff; }
+.nav-item:hover { color: #1db954; }
 .nav-item.active {
   color: #1890ff;
   font-weight: 500;

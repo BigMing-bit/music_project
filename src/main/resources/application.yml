@@ -43,8 +43,15 @@ aliyun:
       endpoint: https://oss-cn-beijing.aliyuncs.com
       bucketName: java-music-project
       region: cn-beijing
+  sms:
+      accessKeyId: your-access-key-id
+      accessKeySecret: your-access-key-secret
+      signName: <<Harmony音乐>>
+      templateCode: SMS_123456789
+      enabled: false
 
 logging:
   level:
       org.springframework.web: debug
+      org.springframework.jdbc.support.JdbcTransactionManager: debug
 

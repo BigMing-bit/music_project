@@ -22,6 +22,7 @@ public interface PlaylistMapper extends BaseMapper<Playlist> {
             p.collect_count AS collectCount,
             p.play_count AS playCount,
             p.create_time AS createTime,
+            p.creator_user_id AS creatorUserId,
 
             -- 主歌手（出现次数最多）
             (

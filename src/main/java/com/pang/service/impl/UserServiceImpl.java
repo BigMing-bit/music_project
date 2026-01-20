@@ -36,7 +36,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (existingUser != null) {
             return false;  // 用户名已存在
         }
-        // 保存用户
         return UserMapper.insert(user) > 0;
     }
 
@@ -48,7 +47,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String md5Password = DigestUtils.md5DigestAsHex(password.getBytes());
         if (!md5Password.equals(user.getPassword())) return null;
 
-        return user; // ✅ 不要在 service 里 login
+        return user;
     }
 
 
@@ -71,20 +70,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         return this.updateById(update);
     }
-
-
-    @Override
-    public boolean updateProfile(User user) {
-        // 更新用户信息
-        return UserMapper.updateById(user) > 0;
-    }
-    
-    @Override
-    public long count() {
-        return UserMapper.selectCount(null);
-    }
-
-
     @Override
     public IPage<User> adminPage(Integer pageNum, Integer pageSize, String keyword, Integer status, Integer gender) {
         if (pageNum == null || pageNum < 1) pageNum = 1;
@@ -100,6 +85,4 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         return this.page(page, qw);
     }
-
-
 }

@@ -10,25 +10,7 @@ export function getSingerList(params) {
     })
 }
 
-// 热门歌手
-// GET /app/singers/hot?cursor=&size=12
-export function getHotSingers(cursor, size = 12) {
-    return request({
-        url: "/app/singers/hot",
-        method: "get",
-        params: { cursor, size },
-    })
-}
 
-// 最新歌手
-// GET /app/singers/new?cursor=&size=12
-export function getNewSingers(cursor, size = 12) {
-    return request({
-        url: "/app/singers/new",
-        method: "get",
-        params: { cursor, size },
-    })
-}
 
 // 歌手详情
 // GET /app/singers/{id}

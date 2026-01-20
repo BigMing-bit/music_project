@@ -53,26 +53,31 @@ const routes = [
         meta: { appPublic: true }, // ✅ 标记前台公开页
     },
     {
+        path: "/app/register",
+        name: "AppRegister",
+        component: () => import("@/views/app/register.vue"),
+        meta: { appPublic: true }, // ✅ 标记前台公开页
+    },
+    {
         path: "/app",
         name: "AppLayout",
         component: () => import("@/components/app/AppLayout.vue"), // ✅ 前台一定要用自己的Layout
         redirect: "/app/index",
         children: [
             {
-                path: "index", // ✅ 子路由不要写 /index
+                path: "index",
                 name: "AppIndex",
                 component: () => import("@/views/app/index.vue"),
-                meta: { name: "首页" },
             },
             {
                 path: "playlists/:id",
                 name: "AppPlaylist",
                 component: () => import("@/views/app/PlaylistDetail.vue"),
                 meta: {
-                    isOfficial: false,  // 默认为普通用户，之后可以动态更新
+                    isOfficial: false,
                 },
             },
-            { path: "playlists", name: "AppPlaylists", component: () => import("@/views/app/Playlists.vue") },
+            { path: "playlists", name: "AppPlaylists", component: () => import("@/views/app/Playlists.vue"), meta: { name: "分类歌单" } },
             {
                 path: "/app/playlist/edit/:id",
                 name: "EditPlaylist",
@@ -82,16 +87,15 @@ const routes = [
             },
 
 
-            { path: "singers", name: "AppSingers", component: () => import("@/views/app/Singers.vue") },
+            { path: "singers", name: "AppSingers", component: () => import("@/views/app/Singers.vue"), meta: { name: "歌手列表" } },
             { path: "singers/:id", name: "AppSingerDetail", component: () => import("@/views/app/SingerDetail.vue") },
-            { path: "albums", name: "AppAlbums", component: () => import("@/views/app/Albums.vue") },
+            { path: "albums", name: "AppAlbums", component: () => import("@/views/app/Albums.vue"), meta: { name: "内地新碟推荐" } },
             { path: "albums/:id", name: "AppAlbumDetail", component: () => import("@/views/app/AlbumDetail.vue") },
             {
                 path: "songs/:id",
                 name: "AppSongDetail",
                 component: () => import("@/views/app/SongDetail.vue"),
             },
-
 
             {
                 path: "user/profile",
@@ -100,9 +104,11 @@ const routes = [
                 meta: { appAuth: true },
             },
             {
-                path: 'admin/profile',
-                name: 'AdminProfile',
-                component: () => import('@/views/app/user/Profile.vue'), // 跳转到同一个 Profile 页面，只是区分是否为官方
+                path: "user/editProfile",
+                name: "AppEditProgile",
+                component: () => import("@/views/app/user/EditProfile.vue"),
+                meta: { appAuth: true },
+
             },
             {
                 path: "player",
@@ -125,18 +131,21 @@ const router = createRouter({
 
 
 router.beforeEach((to, from, next) => {
-    // ===== 前台 =====
+    if (to.path.startsWith("/app")) {
+        document.title = ` ${to.meta.name ? to.meta.name + ' - ' : ''} Harmony音乐 -数万音乐海量曲库新歌热歌天天畅听的音乐平台`
+    } else if (to.path.startsWith("/admin")) {
+        document.title = `音乐后台 - ${to.meta.name || '管理系统'}`
+    } else {
+        document.title = 'Harmony - 数万音乐海量曲库新歌热歌天天畅听的音乐平台'
+    }
     if (to.path.startsWith("/app")) {
         const userStore = useUserStore()
-
-        // 需要登录的前台页面
         if (to.meta?.appAuth && !userStore.token) {
             return next("/app/login")
         }
         return next()
     }
 
-    // ===== 后台 =====
     if (to.path === "/admin/login") return next()
     if (!to.path.startsWith("/admin")) return next()
 

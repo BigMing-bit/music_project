@@ -55,7 +55,6 @@
                 trigger="hover"
                 @show="loadPlaylistSongs(row.id)"
             >
-              <!-- 弹出内容：歌曲列表 -->
               <div v-loading="songLoadingMap.get(row.id)" style="max-height: 260px; overflow:auto;">
                 <div v-if="(songMap.get(row.id) || []).length === 0" style="color:#999;">
                   暂无歌曲
@@ -69,8 +68,6 @@
                   <div style="font-size: 12px; color: #888;">{{ s.singerName || "-" }}</div>
                 </div>
               </div>
-
-              <!-- 单元格显示内容（点击它弹出） -->
               <template #reference>
         <span style="cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
           <span>{{ row.name }}</span>
@@ -92,6 +89,11 @@
             />
 
             <span v-else style="color:#999;">无</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="创建者类型" width="120" align="center">
+          <template #default="{ row }">
+            <el-tag>{{ (row.creatorUserId) === 18 ? '官方' : '用户' }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="playCount" label="播放量" width="100" align="center" />
@@ -133,8 +135,6 @@
         />
       </div>
     </div>
-
-    <!-- ✅ 新增/编辑歌单弹窗 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="640px">
       <el-form :model="form" label-width="90px">
 
@@ -180,10 +180,14 @@
         </el-form-item>
 
          <el-form-item label="创建者类型">
-          <el-tag>官方</el-tag>
+          <el-select v-model="form.creatorTypeDisplay" style="width: 200px;" @change="handleCreatorTypeChange" :disabled="!!form.id">
+            <el-option label="官方" :value="1" />
+            <el-option label="用户" :value="0" />
+          </el-select>
+          <el-tooltip content="编辑歌单时创建者类型不可修改" placement="top" :disabled="!form.id">
+            <el-icon class="el-icon-info"><InfoFilled /></el-icon>
+          </el-tooltip>
         </el-form-item>
-
-        <!-- ✅ 选择歌曲（重点） -->
         <el-form-item label="歌曲" required>
           <el-select
               v-model="form.songIds"
@@ -232,14 +236,15 @@ import {
 } from "@/api/admin/playlist"
 import { selectSongs, selectSongsByIds } from "@/api/admin/song.js"
 import {uploadImage} from "@/api/upload.js";
+import { InfoFilled } from "@element-plus/icons-vue";
 
 const loading = ref(false)
 const list = ref([])
 const total = ref(0)
 const selectedIds = ref([])
 
-const songMap = ref(new Map())      // playlistId -> songs[]
-const songLoadingMap = ref(new Map()) // playlistId -> boolean
+const songMap = ref(new Map())
+const songLoadingMap = ref(new Map())
 
 const DEFAULT_PAGE_SIZE = Number(localStorage.getItem("PLAYLIST_PAGE_SIZE")) || 10
 
@@ -259,9 +264,10 @@ const form = reactive({
   description: "",
   coverUrl: "",
   status: 1,
-
-  creatorType: 0,
-  songIds: []
+  creatorUserId: 18,
+  creatorTypeDisplay: 1, // 1: 官方, 0: 用户
+  songIds: [],
+  tagIds: []
 })
 
 const headerStyle = {
@@ -340,7 +346,16 @@ async function remoteSearchSong(keyword) {
   }
 }
 
-// ✅ 编辑回显：根据 songIds 把 option 补齐（否则 select 不显示 label）
+// ✅ 处理创建者类型变更
+function handleCreatorTypeChange(value) {
+  if (value === 1) {
+    // 官方歌单，设置为官方用户ID（18）
+    form.creatorUserId = 18
+  } else {
+    // 用户歌单，设置为默认普通用户ID（1）
+    form.creatorUserId = 1
+  }
+}
 async function loadSongOptionsByIds(ids) {
   if (!ids || ids.length === 0) return
   const res = await selectSongsByIds(ids)
@@ -363,20 +378,24 @@ async function openDialog(row) {
     const songRes = await getPlaylistSongs(row.id);
     const songIds = (songRes.data || []).map(s => s.id);
 
+    // 从row参数和详情接口中获取创建者信息
+    const creatorIdFromRow = row.creatorUserId;
+    const creatorIdFromDetail = d.creatorUserId;
+    const creatorUserId = creatorIdFromDetail || creatorIdFromRow || 18;
+    
     Object.assign(form, {
       id: d.id,
       name: d.name,
       description: d.description || "",
       coverUrl: d.coverUrl || "",
       status: d.status ?? 1,
-      creatorType: d.creatorType || 0, // 默认为 0，官方歌单
-      creatorAdminId: d.creatorAdminId || 1, // 默认为 1，超级管理员
+      creatorUserId: creatorUserId, // 使用从后端获取的创建者ID
       songIds
     });
+    form.creatorTypeDisplay = form.creatorUserId === 18 ? 1 : 0;
 
     await loadSongOptionsByIds(songIds);
   } else {
-    // 新增歌单时，默认值
     dialogTitle.value = "新增歌单";
     Object.assign(form, {
       id: null,
@@ -384,15 +403,13 @@ async function openDialog(row) {
       description: "",
       coverUrl: "",
       status: 1,
-      creatorType: 0, // 默认为 0，官方歌单
-      creatorAdminId: 1, // 默认为 1，超级管理员
+      creatorUserId: 18,
+      creatorTypeDisplay: 1,
       songIds: []
     });
     songOptions.value = [];
   }
 }
-
-
 
 function submitForm() {
   savePlaylist(form).then(() => {
@@ -418,23 +435,19 @@ async function loadPlaylistSongs(playlistId) {
 
 async function handleUploadCoverUrl({ file }) {
   const res = await uploadImage(file)
-  form.coverUrl = res.data   // ✅ 这里是完整URL：http://localhost:8080/uploads/images/xxx.jpg
+  form.coverUrl = res.data
   ElMessage.success("上传成功")
 }
 
 
 onMounted(loadData)
 </script>
-
-
 <style scoped>
 .page {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
-
-/* ✅ 后台常见白底面板 */
 .panel {
   background: #fff;
   border-radius: 8px;
@@ -442,12 +455,10 @@ onMounted(loadData)
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-/* ✅ 查询栏紧凑 */
 .query-form {
   margin-bottom: -12px;
 }
 
-/* ✅ 工具栏（按钮那一条） */
 .toolbar {
   background: #fff;
   border-radius: 8px;
@@ -472,8 +483,6 @@ onMounted(loadData)
   font-weight: bold;
   color: #409eff;
 }
-
-/* ✅ 分页 */
 .pager {
   margin-top: 16px;
   display: flex;

@@ -18,21 +18,6 @@ public class SingerController{
      @Autowired
      SingerService singerService;
 
-    @GetMapping("/hot")
-    @ApiOperation("热门歌手 - Cursor 换一批")
-    public Result getHotSingers(@RequestParam(required = false) String cursor,
-                                @RequestParam(defaultValue = "12") Integer size) {
-        return Result.success(singerService.getHotSingersCursor(cursor, size));
-    }
-
-    @GetMapping("/new")
-    @ApiOperation("最新歌手 - Cursor 换一批")
-    public Result getNewSingers(@RequestParam(required = false) String cursor,
-                                @RequestParam(defaultValue = "12") Integer size) {
-        return Result.success(singerService.getNewSingersCursor(cursor, size));
-    }
-
-
 
     @GetMapping("/list")
     @ApiOperation("分页查询歌手列表 - 导航栏点击歌手")
@@ -67,7 +52,7 @@ public class SingerController{
             @PathVariable Long id,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer pageSize,
-            @RequestParam(required = false) String orderBy) { // 排序方式：hot(热门)、new(最新)、like(点赞)
+            @RequestParam(required = false) String orderBy) {
 
         Page<SongVo> songsPage = singerService.getSingerSongsPage(id, orderBy, page, pageSize);
         return Result.success(songsPage);

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.pang.common.Constants.AlbumConstants;
 import com.pang.entity.Album;
 import com.pang.entity.Query.AlbumQueryParam;
 import com.pang.entity.Singer;
@@ -14,80 +15,52 @@ import com.pang.mapper.SingerMapper;
 import com.pang.mapper.SongMapper;
 import com.pang.service.AlbumService;
 import com.pang.service.AlbumLikeService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class AlbumServiceImpl extends ServiceImpl<AlbumMapper, Album> implements AlbumService {
 
-    @Autowired
-    private AlbumLikeService albumLikeService;
+    private final AlbumLikeService albumLikeService;
 
-    @Autowired
-    private SingerMapper singerMapper;
+    private final SingerMapper singerMapper;
 
-    @Autowired
-    private SongMapper songMapper;
+    private final SongMapper songMapper;
 
-    @Autowired
-    private AlbumMapper albumMapper;
-
-       /**
-    * 获取专辑详情信息（包含关联的歌手名称）
-    * 查询指定ID的专辑信息，并同时获取对应的歌手名称
-    *
-    * @param albumId 专辑ID，用于查询特定专辑的详细信息
-    * @return AlbumDetailVo 包含专辑基本信息和歌手名称的视图对象，如果专辑不存在或状态无效则返回null
-    */
+    private final AlbumMapper albumMapper;
 
     @Override
-    public AlbumDetailVo getAlbumDetail(Long albumId) {
-    // 根据专辑ID和有效状态查询专辑信息
-    Album album = this.getOne(
-            new LambdaQueryWrapper<Album>()
-                    .eq(Album::getId, albumId)
-                    .eq(Album::getStatus, 1)
-    );
+     public AlbumDetailVo getAlbumDetail(Long albumId) {
+       Album album = this.getOne(
+               new LambdaQueryWrapper<Album>()
+                       .eq(Album::getId, albumId)
+                       .eq(Album::getStatus, AlbumConstants.ACTIVE_STATUS)
+       );
 
-    if (album == null) return null;
+       if (album == null) return null;
 
-    // 根据专辑关联的歌手ID和有效状态查询歌手信息
-    Singer singer = singerMapper.selectOne(
-            new LambdaQueryWrapper<Singer>()
-                    .eq(Singer::getId, album.getSingerId())
-                    .eq(Singer::getStatus, 1)
-    );
+       Singer singer = singerMapper.selectOne(
+               new LambdaQueryWrapper<Singer>()
+                       .eq(Singer::getId, album.getSingerId())
+                       .eq(Singer::getStatus, AlbumConstants.ACTIVE_STATUS)
+       );
 
-    AlbumDetailVo vo = new AlbumDetailVo();
-    vo.setId(album.getId());
-    vo.setAlbumName(album.getAlbumName());
-    vo.setCoverUrl(album.getCoverUrl());
-    vo.setSingerId(album.getSingerId());
-    vo.setSingerName(singer != null ? singer.getName() : null);
+       return AlbumDetailVo.builder()
+               .id(album.getId())
+               .albumName(album.getAlbumName())
+               .coverUrl(album.getCoverUrl())
+               .singerId(album.getSingerId())
+               .singerName(singer != null ? singer.getName() : null)
+               .build();
+   }
 
-    return vo;
-}
-
-
-    // ✅ 专辑歌曲 Cursor（按 song.id 倒序）
     @Override
     public CursorPageResult<SongListVo> getAlbumSongs(Long albumId, String cursor, Integer size) {
-
-        LambdaQueryWrapper<Song> qw = new LambdaQueryWrapper<>();
-        qw.eq(Song::getAlbumId, albumId)
-                .eq(Song::getStatus, 1);
-
-        // cursor 用 song.id
-        if (cursor != null && !cursor.isBlank()) {
-            qw.lt(Song::getId, Long.parseLong(cursor));
-        }
-
-        qw.orderByDesc(Song::getId)
-                .last("LIMIT " + size);
-
-        List<Song> songs = songMapper.selectList(qw);
+        List<Song> songs = queryAlbumSongs(albumId, cursor, size);
 
         CursorPageResult<SongListVo> result = new CursorPageResult<>();
         result.setHasMore(songs.size() == size);
@@ -98,58 +71,69 @@ public class AlbumServiceImpl extends ServiceImpl<AlbumMapper, Album> implements
             return result;
         }
 
-        // ✅ singerName 批量查（虽然一个专辑一般只有一个歌手，但这里也支持合辑）
-        Map<Long, String> singerMap = getSingerMap(songs);
-
-        List<SongListVo> voList = songs.stream().map(s ->
-            SongListVo.builder()
-                .id(s.getId())
-                .songName(s.getSongName())
-                .singerId(s.getSingerId())
-                .singerName(singerMap.get(s.getSingerId()))
-                .coverUrl(s.getCoverUrl())
-                .audioUrl(s.getAudioUrl())
-                .playCount(s.getPlayCount())
-                .likeCount(s.getLikeCount())
-                .durationSeconds(s.getDurationSeconds())
-                .build()
-        ).toList();
-
+        List<SongListVo> voList = buildSongVoList(songs);
         result.setList(voList);
-        result.setNextCursor(songs.get(songs.size() - 1).getId().toString());
+        result.setNextCursor(getNextCursor(songs));
         return result;
     }
+    private List<Song> queryAlbumSongs(Long albumId, String cursor, Integer size) {
+        LambdaQueryWrapper<Song> qw = new LambdaQueryWrapper<>();
+        qw.eq(Song::getAlbumId, albumId)
+                .eq(Song::getStatus, 1);
 
-        /**
-     * 根据歌曲列表获取歌手信息映射
-     * 从歌曲列表中提取歌手ID，查询有效的歌手信息，并构建ID到姓名的映射关系
-     * @param songs 歌曲列表，用于提取歌手ID
-     * @return Map<Long, String> 歌手ID到歌手姓名的映射表，key为歌手ID，value为歌手姓名
-     */
+        if (cursor != null && !cursor.isBlank()) {
+            qw.lt(Song::getId, Long.parseLong(cursor));
+        }
+
+        qw.orderByDesc(Song::getId)
+                .last("LIMIT " + size);
+
+        return songMapper.selectList(qw);
+    }
+
+    private List<SongListVo> buildSongVoList(List<Song> songs) {
+        Map<Long, String> singerMap = getSingerMap(songs);
+
+        return songs.stream().map(s ->
+                SongListVo.builder()
+                        .id(s.getId())
+                        .songName(s.getSongName())
+                        .singerId(s.getSingerId())
+                        .singerName(singerMap.get(s.getSingerId()))
+                        .coverUrl(s.getCoverUrl())
+                        .audioUrl(s.getAudioUrl())
+                        .playCount(s.getPlayCount())
+                        .likeCount(s.getLikeCount())
+                        .durationSeconds(s.getDurationSeconds())
+                        .build()
+        ).toList();
+    }
+    private String getNextCursor(List<Song> songs) {
+        return songs.isEmpty() ? null : songs.get(songs.size() - 1).getId().toString();
+    }
     private Map<Long, String> getSingerMap(List<Song> songs) {
-        // 提取歌曲列表中的歌手ID，过滤空值并去重
-        List<Long> singerIds = songs.stream()
-                .map(Song::getSingerId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
+        List<Long> singerIds = extractDistinctSingerIds(songs);
 
-        if (singerIds.isEmpty()) return new HashMap<>();
+        if (singerIds.isEmpty()) return Collections.emptyMap();
 
-        // 查询状态为1的有效歌手信息
         List<Singer> singers = singerMapper.selectList(
                 new LambdaQueryWrapper<Singer>()
                         .in(Singer::getId, singerIds)
                         .eq(Singer::getStatus, 1)
         );
 
-        Map<Long, String> map = new HashMap<>();
-        for (Singer s : singers) {
-            map.put(s.getId(), s.getName());
-        }
-        return map;
+        return singers.stream()
+                .collect(Collectors.toMap(Singer::getId, Singer::getName, (a, b) -> a));
     }
-     @Override
+    private List<Long> extractDistinctSingerIds(List<Song> songs) {
+        return songs.stream()
+                .map(Song::getSingerId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    @Override
     public IPage<AlbumVo> adminPageVo(AlbumQueryParam albumQueryParam) {
         Page<Album> page = new Page<>(albumQueryParam.getPageNum(), albumQueryParam.getPageSize());
 
@@ -166,12 +150,13 @@ public class AlbumServiceImpl extends ServiceImpl<AlbumMapper, Album> implements
 
     @Override
     public IPage<AlbumVo> getAlbumPage(String name, Long singerId, Integer page, Integer pageSize) {
-        if (page == null || page < 1) page = 1;
-        if (pageSize == null || pageSize < 1) pageSize = 20;
+        Integer validatedPage = validatePageParam(page, AlbumConstants.DEFAULT_PAGE_NUM);
+        Integer validatedPageSize = validatePageParam(pageSize, AlbumConstants.DEFAULT_PAGE_SIZE);
 
-        Page<Album> albumPage = new Page<>(page, pageSize);
-        return baseMapper.pageAlbumVo(albumPage, name, 1, singerId);
+        Page<Album> albumPage = new Page<>(validatedPage, validatedPageSize);
+        return baseMapper.pageAlbumVo(albumPage, name, AlbumConstants.ACTIVE_STATUS, singerId);
     }
+
 
     @Override
     public boolean toggleFavorite(Long albumId, Long userId) {
@@ -192,5 +177,8 @@ public class AlbumServiceImpl extends ServiceImpl<AlbumMapper, Album> implements
                 albumMapper.updateById(album);
             }
         }
+    }
+    private Integer validatePageParam(Integer param, Integer defaultValue) {
+        return (param == null || param <= 0) ? defaultValue : param;
     }
 }

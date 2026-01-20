@@ -24,17 +24,18 @@ public class AppUserProfileServiceImpl  implements AppUserProfileService {
     private final AlbumFavoriteMapper albumFavoriteMapper;
 
 
-
-
     @Override
     public AppUserVO getMe(Long userId) {
+        // 查询数据库获取用户实体
         User u = userMapper.selectById(userId);
         if (u == null) return null;
 
+        // 将用户实体转换为视图对象
         AppUserVO vo = new AppUserVO();
         BeanUtils.copyProperties(u, vo);
         return vo;
     }
+
 
     @Override
     public UserStatsVO getStats(Long userId) {
@@ -72,7 +73,6 @@ public class AppUserProfileServiceImpl  implements AppUserProfileService {
         vo.setLikeAlbumCount(likeAlbumCount);
         vo.setPlaylistCount(playlistCount);
 
-        // 你没关注/粉丝表，就先 0
         vo.setFollowCount(0L);
         vo.setFanCount(0L);
 
@@ -124,8 +124,6 @@ public class AppUserProfileServiceImpl  implements AppUserProfileService {
         vo.setLikePlaylistCount(likePlaylistCount);
         vo.setLikeAlbumCount(likeAlbumCount);
         vo.setPlaylistCount(playlistCount);
-
-        // 你没关注/粉丝表，就先 0
         vo.setFollowCount(0L);
         vo.setFanCount(0L);
 

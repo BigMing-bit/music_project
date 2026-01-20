@@ -52,9 +52,11 @@ public class SaTokenConfig implements WebMvcConfigurer {
                         "/app/user/login",
                         "/app/user/register",
                         "/app/user/captcha",
+                        "/app/user/send-sms",
                         "/app/user/info/**",
                         "/app/user/stats/**",
-                        "/app/user/playlists/**"
+                        "/app/user/playlists/**",
+                        "/app/playlists/**"
                 );
 
         // ✅ 文件上传 /file/** 需要用户登录（支持 admin 和 user 两种登录体系）

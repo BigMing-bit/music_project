@@ -24,7 +24,6 @@
               fit="cover"
               preview-teleported
           />
-
           <!-- 没图：显示虚线圆 + 加号 -->
           <div v-else class="avatar-upload-placeholder">
             <el-icon class="avatar-plus"><Plus /></el-icon>
@@ -89,7 +88,8 @@
       </el-form-item>
 
 
-      <el-button type="primary" @click="savePlaylist">保存</el-button>
+      <el-button class="tn_sub" type="primary" @click="savePlaylist">保存</el-button>
+      <el-button @click="cancelEdit">取消</el-button>
     </el-form>
   </div>
 </template>
@@ -234,6 +234,11 @@ const savePlaylist = async () => {
   }
 }
 
+const cancelEdit = () => {
+  const { id } = route.params
+  router.push(`/app/playlists/${id}`)
+}
+
 onMounted(async () => {
   await loadTagGroups()
   await loadPlaylistDetail()
@@ -254,17 +259,16 @@ onMounted(async () => {
 .avatar-upload-placeholder {
   width: 110px;
   height: 110px;
-  border-radius: 50%;
-  border: 2px dashed #d6d6d6;
+  border: 2px dashed #fff1f0;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
+  background: #fff1f0;
 }
 
 .avatar-upload-placeholder:hover {
-  border-color: #409eff;
   background: rgba(64, 158, 255, 0.06);
 }
 
@@ -276,7 +280,6 @@ onMounted(async () => {
 .avatar-preview {
   width: 110px;
   height: 110px;
-  border-radius: 50%;
   overflow: hidden;
   display: block;
 }
@@ -376,6 +379,12 @@ onMounted(async () => {
 
 .tag-item.disabled {
   cursor: not-allowed;
+}
+
+
+.tn_sub{
+  margin:0 50px 0 120px;
+  text-align: center;
 }
 
 </style>

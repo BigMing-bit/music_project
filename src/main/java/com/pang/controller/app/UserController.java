@@ -3,6 +3,7 @@ package com.pang.controller.app;
 import cn.dev33.satoken.SaManager;
 import com.pang.common.Result;
 import com.pang.common.CommonConstants; // 引入常量类
+import com.pang.common.utils.SmsUtil;
 import com.pang.entity.User;
 import com.pang.entity.vo.UserVo;
 import com.pang.security.dto.*;
@@ -24,6 +25,9 @@ public class UserController {
     @Autowired
     UserService userService;
 
+    @Autowired
+    SmsUtil smsUtil;
+
     // 获取用户资料
     @GetMapping
     public Result getProfile() {
@@ -38,28 +42,60 @@ public class UserController {
         vo.setNickname(user.getNickname());
         vo.setEmail(user.getEmail());
         vo.setPhone(user.getPhone());
+        vo.setGender(user.getGender());
         vo.setAvatarUrl(user.getAvatarUrl());
         vo.setStatus(user.getStatus());
         vo.setRole(user.getRole()); // 添加角色字段
         return Result.success(vo);
     }
 
+    @PostMapping("/send-sms")
+    public Result sendSmsCode(@RequestBody Map<String, String> params) {
+        String phone = params.get("phone");
+        if (phone == null || phone.trim().isEmpty()) {
+            return Result.error(CommonConstants.INVALID_PARAMETER, "手机号不能为空");
+        }
+        
+        // 生成6位验证码
+        String code = SmsUtil.generateVerifyCode();
+        
+        // 发送短信
+        boolean success = smsUtil.sendSmsCode(phone, code);
+        if (!success) {
+            return Result.error(CommonConstants.FAIL, "短信发送失败，请稍后重试");
+        }
+        
+        // 存储验证码到SaTokenDao，有效期5分钟
+        SaManager.getSaTokenDao().set("sms:code:" + phone, code, 300);
+        
+        return Result.success("验证码发送成功");
+    }
+
     // 用户注册接口
     @PostMapping("/register")
     public Result register(@RequestBody @Valid UserRegisterDTO dto) {
-        // 校验验证码
+        // 校验图形验证码
         String rightCode = SaManager.getSaTokenDao().get("captcha:" + dto.getCaptchaId());
         if (rightCode == null || !rightCode.equalsIgnoreCase(dto.getCaptchaCode())) {
-            return Result.error(CommonConstants.INVALID_PARAMETER, "验证码错误或已过期");
+            return Result.error(CommonConstants.INVALID_PARAMETER, "图形验证码错误或已过期");
         }
         // 删除验证码（防重放）
         SaManager.getSaTokenDao().delete("captcha:" + dto.getCaptchaId());
+
+        // 校验短信验证码
+        String rightSmsCode = SaManager.getSaTokenDao().get("sms:code:" + dto.getPhone());
+        if (rightSmsCode == null || !rightSmsCode.equals(dto.getSmsCode())) {
+            return Result.error(CommonConstants.INVALID_PARAMETER, "短信验证码错误或已过期");
+        }
+        // 删除短信验证码（防重放）
+        SaManager.getSaTokenDao().delete("sms:code:" + dto.getPhone());
 
         // 创建用户
         User user = new User();
         user.setUsername(dto.getUsername());
         user.setPassword(MD5Utils.encode(dto.getPassword())); // 密码加密
         user.setNickname(dto.getNickname());
+        user.setPhone(dto.getPhone());
         user.setRole(dto.getRole());
 
         // 注册
@@ -121,6 +157,7 @@ public class UserController {
         updateUser.setNickname(dto.getNickname());
         updateUser.setEmail(dto.getEmail());
         updateUser.setPhone(dto.getPhone());
+        updateUser.setGender(dto.getGender());
         updateUser.setAvatarUrl(dto.getAvatarUrl());
 
         boolean updated = userService.updateById(updateUser);
@@ -137,13 +174,9 @@ public class UserController {
         if (!ok) {
             return Result.error(CommonConstants.INVALID_PARAMETER, "旧密码错误或修改失败");
         }
-
-        // 修改密码成功后强制下线
         SaTokenUtil.USER.logout();
         return Result.success("密码修改成功，请重新登录");
     }
-
-    // 获取验证码
     @GetMapping("/captcha")
     public Result captcha() {
         // 生成验证码

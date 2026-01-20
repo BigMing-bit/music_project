@@ -7,7 +7,7 @@
 
       <!-- 中心信息 -->
       <div class="center-box">
-        <div class="avatar">
+        <div class="avatar" @click="editProfile">
           <img :src="avatarUrl" alt="avatar" />
         </div>
 
@@ -278,7 +278,8 @@ const songs = ref([])
 const playlists = ref([])
 const albums = ref([])
 const createdPlaylists = ref([])
-const programs = ref([])
+
+
 
 // 创建歌单弹窗
 const createPlaylistDialogVisible = ref(false)
@@ -298,6 +299,10 @@ const avatarUrl = computed(() => {
 const DEFAULT_COVER =
     "https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?auto=format&fit=crop&w=2400&q=80"
 
+// 跳转到编辑用户信息页面
+function editProfile() {
+  router.push("/app/user/editProfile");
+}
 
 const coverStyle = computed(() => {
   const u = user.value
@@ -328,9 +333,6 @@ function switchTab(t) {
     fetchLikedSongs()
   } else if (t === "created") {
     fetchCreatedPlaylists()
-  } else if (t === "programs") {
-    // 加载主播节目数据
-    fetchPrograms()
   }
 }
 
@@ -455,26 +457,8 @@ async function fetchProfileAndCounts() {
   loading.value = true
   try {
     const userId = route.query.id
-    const userType = route.query.type
-    
-    if (userType === 'official') {
-      // 显示官方个人信息
-      currentUser.value = {
-        id: 0,
-        username: 'official',
-        nickname: 'Harmony官方歌单',
-        avatarUrl: 'http://localhost:8080/uploads/images/ae96ff42b31c4b4193a25d4aa554ad68.jpg',
-        coverUrl: 'https://y.qq.com/ryqq/static/media/bg_profile.bd497b5a.jpg?max_age=2592000',
-        isOfficial: 1
-      }
-      
-      // 官方统计信息
-      followCount.value = 0
-      fanCount.value = 0
-      likeSongCount.value = 0
-      likePlaylistCount.value = 0
-      likeAlbumCount.value = 0
-    } else if (userId && userId !== userStore.userId) {
+    let userRes
+    if (userId && userId !== userStore.userId) {
       // 加载指定用户的信息
       const userRes = await getUserInfo(userId)
       const userInfo = userRes.data || {}
@@ -517,13 +501,8 @@ async function fetchLikedSongs() {
   loading.value = true
   try {
     const userId = route.query.id
-    const userType = route.query.type
     let res
-    if (userType === 'official') {
-      // 官方用户不显示收藏歌曲
-      songs.value = []
-      likeSongCount.value = 0
-    } else if (userId && userId !== userStore.userId) {
+    if (userId && userId !== userStore.userId) {
       // 加载指定用户的收藏歌曲
       res = await getUserLikedSongs(userId, "", 500)
 
@@ -574,13 +553,8 @@ async function fetchLikedPlaylists() {
   loading.value = true
   try {
     const userId = route.query.id
-    const userType = route.query.type
     let res
-    if (userType === 'official') {
-      // 官方用户不显示收藏歌单
-      playlists.value = []
-      likePlaylistCount.value = 0
-    } else if (userId && userId !== userStore.userId) {
+     if (userId && userId !== userStore.userId) {
       // 加载指定用户的收藏歌单
       res = await getUserLikedPlaylists(userId, "", 500)
 
@@ -625,13 +599,8 @@ async function fetchLikedAlbums() {
   loading.value = true
   try {
     const userId = route.query.id
-    const userType = route.query.type
     let res
-    if (userType === 'official') {
-      // 官方用户不显示收藏专辑
-      albums.value = []
-      likeAlbumCount.value = 0
-    } else if (userId && userId !== userStore.userId) {
+   if (userId && userId !== userStore.userId) {
       // 加载指定用户的收藏专辑
       res = await getUserLikedAlbums(userId, "", 500)
 
@@ -676,22 +645,8 @@ async function fetchCreatedPlaylists() {
   loading.value = true
   try {
     const userId = route.query.id
-    const userType = route.query.type
     let res
-    if (userType === 'official') {
-      // 加载官方歌单
-      res = await getOfficialPlaylists({ size: 20 })
-      const list = pickList(res.data)
-
-      // 这里按你后端 PlaylistHomeVo 字段兼容一下
-      createdPlaylists.value = (list || []).map((x) => ({
-        id: x.id,
-        name: x.name,
-        coverUrl: x.coverUrl,
-        songCount: 0, // 官方歌单暂时不显示歌曲数量
-        playCount: x.collectCount || 0 // 用收藏数作为播放量展示
-      }))
-    } else if (userId && userId !== userStore.userId) {
+    if (userId && userId !== userStore.userId) {
       // 加载指定用户的歌单
       res = await getUserPlaylists(userId)
       const list = pickList(res.data)
@@ -726,25 +681,7 @@ async function fetchCreatedPlaylists() {
   }
 }
 
-async function fetchPrograms() {
-  loading.value = true
-  try {
-    const userType = route.query.type
-    if (userType === 'official') {
-      // 官方用户暂时不显示主播节目
-      programs.value = []
-    } else {
-      // 加载用户的主播节目
-      // 这里可以根据实际情况修改，例如从后端获取主播节目
-      programs.value = []
-    }
-  } catch (e) {
-    console.error(e)
-    ElMessage.error("加载主播节目失败")
-  } finally {
-    loading.value = false
-  }
-}
+
 
 onMounted(async () => {
   userStore.hydrate()

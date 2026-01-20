@@ -1,7 +1,7 @@
 <template>
   <div class="login-page">
     <div class="card">
-      <div class="title">Harmony · 用户登录</div>
+      <div class="title">Harmony · 用户注册</div>
 
       <el-form :model="form" @keyup.enter="onSubmit">
         <el-form-item>
@@ -21,8 +21,29 @@
         </el-form-item>
 
         <el-form-item>
+          <el-input v-model="form.phone" placeholder="请输入手机号" size="large" clearable>
+            <template #prefix>
+              <el-icon><Phone /></el-icon>
+            </template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item>
           <div class="captcha-row">
-            <el-input v-model="form.captchaCode" placeholder="验证码" style="flex:1;" />
+            <el-input v-model="form.smsCode" placeholder="请输入手机验证码" style="flex:1;" />
+            <el-button 
+              type="primary" 
+              :disabled="countdown > 0" 
+              @click="sendSmsCode"
+            >
+              {{ countdown > 0 ? `${countdown}秒后重发` : '获取验证码' }}
+            </el-button>
+          </div>
+        </el-form-item>
+
+        <el-form-item>
+          <div class="captcha-row">
+            <el-input v-model="form.captchaCode" placeholder="请输入图形验证码" style="flex:1;" />
             <div class="captcha-img" @click="loadCaptcha" :title="'点击刷新'">
               <img v-if="captchaImg" :src="captchaImg" alt="captcha" />
               <span v-else>加载中</span>
@@ -31,7 +52,7 @@
         </el-form-item>
 
         <!-- 添加角色选择 -->
-        <el-form-item label="登录身份">
+        <el-form-item label="注册身份">
           <el-select
               v-model="form.role"
               placeholder="请选择身份"
@@ -45,13 +66,11 @@
 
 
         <el-button type="primary" :loading="loading" class="btn" @click="onSubmit">
-          登录
+          注册
         </el-button>
 
         <div class="tips">
-          <span class="link" @click="goHome">先逛逛</span>
-          <span style="margin: 0 10px;">|</span>
-          <span class="link" @click="goRegister">注册账号</span>
+          <span class="link" @click="goLogin">已有账号？去登录</span>
         </div>
       </el-form>
     </div>
@@ -61,26 +80,29 @@
 <script setup>
 import { reactive, ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
-import { useUserStore } from "@/store/user";
 import { useRouter } from "vue-router";
-import { userLogin, getCaptcha } from "@/api/app/user";
-import { Lock, User } from "@element-plus/icons-vue";
+import { userRegister, getCaptcha } from "@/api/app/user";
+import { Lock, User, Avatar, Phone } from "@element-plus/icons-vue";
+import request from "@/utils/appRequest";
 
 const router = useRouter();
-const userStore = useUserStore();
 
 const loading = ref(false);
 const captchaImg = ref("");
+const countdown = ref(0);
+let countdownTimer = null;
 
 const form = reactive({
   username: "",
   password: "",
+  phone: "",
+  smsCode: "",
   captchaId: "",
   captchaCode: "",
-  role: null, // 默认角色为普通用户（0）
+  role: 0, // 默认角色为普通用户（0）
 });
 
-// 加载验证码
+// 加载图形验证码
 const loadCaptcha = async () => {
   try {
     const res = await getCaptcha();
@@ -91,51 +113,86 @@ const loadCaptcha = async () => {
   }
 };
 
+// 发送短信验证码
+const sendSmsCode = async () => {
+  if (!form.phone) {
+    return ElMessage.warning("请输入手机号");
+  }
+  
+  if (!/^1[3-9]\d{9}$/.test(form.phone)) {
+    return ElMessage.warning("请输入正确的手机号");
+  }
+
+  try {
+    const res = await request({
+      url: "/app/user/send-sms",
+      method: "post",
+      data: {
+        phone: form.phone
+      }
+    });
+    
+    ElMessage.success("验证码发送成功");
+    startCountdown();
+  } catch (error) {
+    ElMessage.error("验证码发送失败，请稍后重试");
+  }
+};
+
+// 倒计时函数
+const startCountdown = () => {
+  countdown.value = 60;
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+  }
+  countdownTimer = setInterval(() => {
+    if (countdown.value > 0) {
+      countdown.value--;
+    } else {
+      clearInterval(countdownTimer);
+    }
+  }, 1000);
+};
+
 // 提交表单
 const onSubmit = async () => {
   if (!form.username.trim()) return ElMessage.warning("请输入用户名");
   if (!form.password.trim()) return ElMessage.warning("请输入密码");
-  if (!form.captchaCode.trim()) return ElMessage.warning("请输入验证码");
-
-  if (form.role === null) {
-    return ElMessage.warning("请选择登录身份");
-  }
+  if (!form.phone) return ElMessage.warning("请输入手机号");
+  if (!form.smsCode) return ElMessage.warning("请输入短信验证码");
+  if (!form.captchaCode.trim()) return ElMessage.warning("请输入图形验证码");
 
   loading.value = true;
   try {
-    const res = await userLogin({
+    const res = await userRegister({
       username: form.username.trim(),
       password: form.password.trim(),
+      phone: form.phone,
+      smsCode: form.smsCode,
       captchaId: form.captchaId,
       captchaCode: form.captchaCode.trim(),
-      role: form.role, // 只可能是 0 或 1
+      role: form.role,
     });
 
-    await userStore.login(res.data);
-    ElMessage.success("登录成功");
-    router.push("/app/index");
+    ElMessage.success("注册成功，请登录");
+    router.push("/app/login");
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || "注册失败，请稍后重试");
   } finally {
     loading.value = false;
   }
 };
 
-
-
-// 跳转到注册页面
-const goRegister = () => {
-  router.push("/app/register");
+// 跳转到登录页
+const goLogin = () => {
+  router.push("/app/login");
 };
 
-// 页面加载时，获取验证码
+// 页面加载时，获取图形验证码
 onMounted(() => {
   loadCaptcha();
 });
 </script>
-
-<style scoped>
-/* 样式根据你的需求来 */
-</style>
-
 
 <style scoped>
 .login-page{

@@ -23,6 +23,10 @@ public class PlaylistLikeServiceImpl extends BaseFavoriteService<PlaylistFavorit
     private final PlaylistFavoriteMapper playlistFavoriteMapper;
     private final PlaylistMapper playlistMapper;
 
+    // 常量定义
+    private static final int ACTIVE_STATUS = 1;
+    private static final int SPECIAL_STATUS = 3;
+
     @Override
     public boolean exists(Long userId, Long playlistId) {
         Long count = playlistMapper.countUserFavorite(userId, playlistId);
@@ -51,67 +55,101 @@ public class PlaylistLikeServiceImpl extends BaseFavoriteService<PlaylistFavorit
 
     @Override
     public CursorPageResult<PlaylistVo> getMyLikedItems(Long userId, String cursor, Integer size) {
-        // 构建查询条件
-        LambdaQueryWrapper<PlaylistFavorite> qw = new LambdaQueryWrapper<>();
-        qw.eq(PlaylistFavorite::getUserId, userId)
-                .in(PlaylistFavorite::getStatus, 1, 3)
-                .orderByDesc(PlaylistFavorite::getId);
+        List<PlaylistFavorite> likes = queryLikedPlaylists(userId, cursor, size);
+        List<Long> playlistIds = extractPlaylistIds(likes);
 
-        // 处理游标分页
-        if (cursor != null && !cursor.isBlank()) {
-            qw.lt(PlaylistFavorite::getId, Long.parseLong(cursor));
-        }
-        qw.last("LIMIT " + size);
-
-        // 查询收藏记录并过滤无效数据
-        List<PlaylistFavorite> likes = playlistFavoriteMapper.selectList(qw);
-        List<Long> playlistIds = likes.stream()
-                .map(PlaylistFavorite::getPlaylistId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-
-        // 构建返回结果
         CursorPageResult<PlaylistVo> result = new CursorPageResult<>();
         result.setHasMore(likes.size() == size);
 
-        // 无收藏记录时直接返回空列表
         if (playlistIds.isEmpty()) {
             result.setList(Collections.emptyList());
             result.setNextCursor(null);
             return result;
         }
 
-        // 批量查询歌单信息
+        List<PlaylistVo> voList = buildPlaylistVoList(playlistIds);
+        result.setList(voList);
+        result.setNextCursor(getNextCursor(likes));
+        return result;
+    }
+
+    /**
+     * 查询用户收藏的歌单记录
+     */
+    private List<PlaylistFavorite> queryLikedPlaylists(Long userId, String cursor, Integer size) {
+        LambdaQueryWrapper<PlaylistFavorite> qw = new LambdaQueryWrapper<>();
+        qw.eq(PlaylistFavorite::getUserId, userId)
+                .in(PlaylistFavorite::getStatus, ACTIVE_STATUS, SPECIAL_STATUS)
+                .orderByDesc(PlaylistFavorite::getId);
+
+        if (cursor != null && !cursor.isBlank()) {
+            try {
+                qw.lt(PlaylistFavorite::getId, Long.parseLong(cursor));
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid cursor format: " + cursor);
+            }
+        }
+        qw.last("LIMIT " + size);
+
+        return playlistFavoriteMapper.selectList(qw);
+    }
+
+    /**
+     * 提取歌单 ID 列表
+     */
+    private List<Long> extractPlaylistIds(List<PlaylistFavorite> likes) {
+        return likes.stream()
+                .map(PlaylistFavorite::getPlaylistId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 构建歌单 VO 列表
+     */
+    private List<PlaylistVo> buildPlaylistVoList(List<Long> playlistIds) {
         List<Playlist> playlists = playlistMapper.selectList(
                 new LambdaQueryWrapper<Playlist>()
                         .in(Playlist::getId, playlistIds)
-                        .eq(Playlist::getStatus, 1)
+                        .eq(Playlist::getStatus, ACTIVE_STATUS)
         );
 
-        // 按收藏顺序排序并转换为 VO
+        Map<Long, Integer> orderMap = buildOrderMap(playlistIds);
+
+        return playlists.stream()
+                .sorted(Comparator.comparingInt(p -> orderMap.getOrDefault(p.getId(), Integer.MAX_VALUE)))
+                .map(this::convertToPlaylistVo)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 构建排序映射
+     */
+    private Map<Long, Integer> buildOrderMap(List<Long> playlistIds) {
         Map<Long, Integer> orderMap = new HashMap<>();
         for (int i = 0; i < playlistIds.size(); i++) {
             orderMap.put(playlistIds.get(i), i);
         }
-
-        List<PlaylistVo> voList = playlists.stream()
-                .sorted(Comparator.comparingInt(p -> orderMap.getOrDefault(p.getId(), Integer.MAX_VALUE)))
-                .map(p -> {
-                    PlaylistVo vo = new PlaylistVo();
-                    vo.setId(p.getId());
-                    vo.setName(p.getName());
-                    vo.setCoverUrl(p.getCoverUrl());
-                    vo.setPlayCount(p.getPlayCount());
-                    vo.setCollectCount(p.getCollectCount());
-                    return vo;
-                })
-                .collect(Collectors.toList());
-
-        // 设置游标和返回结果
-        result.setList(voList);
-        result.setNextCursor(likes.isEmpty() ? null : likes.get(likes.size() - 1).getId().toString());
-        return result;
+        return orderMap;
     }
 
+    /**
+     * 转换为 PlaylistVo 对象
+     */
+    private PlaylistVo convertToPlaylistVo(Playlist p) {
+        return PlaylistVo.builder()
+                .id(p.getId())
+                .name(p.getName())
+                .coverUrl(p.getCoverUrl())
+                .playCount(p.getPlayCount())
+                .collectCount(p.getCollectCount())
+                .build();
+    }
 
+    /**
+     * 获取下一页游标
+     */
+    private String getNextCursor(List<PlaylistFavorite> likes) {
+        return likes.isEmpty() ? null : likes.get(likes.size() - 1).getId().toString();
+    }
 }

@@ -91,20 +91,7 @@ public class SongLikeServiceImpl extends BaseFavoriteService<SongLike, Song, Son
 
     @Override
     public CursorPageResult<SongListVo> getMyLikedItems(Long userId, String cursor, Integer size) {
-
-        LambdaQueryWrapper<SongLike> qw = new LambdaQueryWrapper<>();
-        qw.eq(SongLike::getUserId, userId)
-                .eq(SongLike::getStatus, 1);
-
-        // cursor 用 song_like.id
-        if (cursor != null && !cursor.isBlank()) {
-            qw.lt(SongLike::getId, Long.parseLong(cursor));
-        }
-
-        qw.orderByDesc(SongLike::getId)
-                .last("LIMIT " + size);
-
-        List<SongLike> likes = songLikeMapper.selectList(qw);
+        List<SongLike> likes = queryLikedSongs(userId, cursor, size);
         List<Long> songIds = likes.stream().map(SongLike::getSongId).toList();
 
         CursorPageResult<SongListVo> result = new CursorPageResult<>();
@@ -116,48 +103,80 @@ public class SongLikeServiceImpl extends BaseFavoriteService<SongLike, Song, Son
             return result;
         }
 
-        // 批量查 song
         List<Song> songs = songMapper.selectList(
                 new LambdaQueryWrapper<Song>()
                         .in(Song::getId, songIds)
                         .eq(Song::getStatus, 1)
         );
 
-        // singerName 映射
-        Map<Long, String> singerMap = getSingerMap(songs);
-        
-        // albumName 映射
-        Map<Long, String> albumMap = getAlbumMap(songs);
-
-        // 按 likes 顺序还原
-        Map<Long, Integer> orderMap = new HashMap<>();
-        for (int i = 0; i < songIds.size(); i++) orderMap.put(songIds.get(i), i);
-        songs.sort(Comparator.comparingInt(s -> orderMap.getOrDefault(s.getId(), 0)));
-
-        List<SongListVo> voList = songs.stream().map(s ->
-            SongListVo.builder()
-                .id(s.getId())
-                .songName(s.getSongName())
-                .singerId(s.getSingerId())
-                .singerName(singerMap.get(s.getSingerId()))
-                .singerAvatarUrl(null) // 歌曲表中没有歌手头像URL，需要额外查询
-                .albumId(s.getAlbumId())
-                .albumName(albumMap.get(s.getAlbumId()))
-                .coverUrl(s.getCoverUrl())
-                .audioUrl(s.getAudioUrl())
-                .playCount(s.getPlayCount())
-                .likeCount(s.getLikeCount())
-                .durationSeconds(s.getDurationSeconds())
-                .build()
-        ).toList();
+        sortResults(songs, likes);
+        List<SongListVo> voList = buildSongVoList(likes, songs);
 
         result.setList(voList);
-
-        // nextCursor
         result.setNextCursor(likes.get(likes.size() - 1).getId().toString());
         return result;
     }
 
+    /**
+     * 查询用户点赞的歌曲
+     */
+    private List<SongLike> queryLikedSongs(Long userId, String cursor, Integer size) {
+        LambdaQueryWrapper<SongLike> qw = new LambdaQueryWrapper<>();
+        qw.eq(SongLike::getUserId, userId)
+                .eq(SongLike::getStatus, 1);
+
+        if (cursor != null && !cursor.isBlank()) {
+            qw.lt(SongLike::getId, Long.parseLong(cursor));
+        }
+
+        qw.orderByDesc(SongLike::getId)
+                .last("LIMIT " + size);
+
+        return songLikeMapper.selectList(qw);
+    }
+
+    /**
+     * 构建歌曲 VO 列表
+     */
+    private List<SongListVo> buildSongVoList(List<SongLike> likes, List<Song> songs) {
+        Map<Long, String> singerMap = getSingerMap(songs);
+        Map<Long, String> albumMap = getAlbumMap(songs);
+
+        List<Long> songIds = likes.stream().map(SongLike::getSongId).toList();
+        Map<Long, Integer> orderMap = new HashMap<>();
+        for (int i = 0; i < songIds.size(); i++) {
+            orderMap.put(songIds.get(i), i);
+        }
+
+        return songs.stream().map(s ->
+                SongListVo.builder()
+                        .id(s.getId())
+                        .songName(s.getSongName())
+                        .singerId(s.getSingerId())
+                        .singerName(singerMap.get(s.getSingerId()))
+                        .singerAvatarUrl(null)
+                        .albumId(s.getAlbumId())
+                        .albumName(albumMap.get(s.getAlbumId()))
+                        .coverUrl(s.getCoverUrl())
+                        .audioUrl(s.getAudioUrl())
+                        .playCount(s.getPlayCount())
+                        .likeCount(s.getLikeCount())
+                        .durationSeconds(s.getDurationSeconds())
+                        .build()
+        ).toList();
+    }
+
+    /**
+     * 按点赞时间排序结果
+     */
+    private void sortResults(List<Song> songs, List<SongLike> likes) {
+        List<Long> songIds = likes.stream().map(SongLike::getSongId).toList();
+        Map<Long, Integer> orderMap = new HashMap<>();
+        for (int i = 0; i < songIds.size(); i++) {
+            orderMap.put(songIds.get(i), i);
+        }
+        songs.sort(Comparator.comparingInt(s -> orderMap.getOrDefault(s.getId(), 0)));
+    }
 
     private Map<Long, String> getSingerMap(List<Song> songs) {
         List<Long> singerIds = songs.stream().map(Song::getSingerId).filter(Objects::nonNull).distinct().toList();

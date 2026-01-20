@@ -9,6 +9,8 @@ import com.pang.entity.SysOperationLog;
 import com.pang.mapper.SysOperationLogMapper;
 import com.pang.service.SysOperationLogService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SysOperationLogServiceImpl extends ServiceImpl<SysOperationLogMapper, SysOperationLog>
@@ -34,4 +36,5 @@ public class SysOperationLogServiceImpl extends ServiceImpl<SysOperationLogMappe
         qw.orderByDesc(SysOperationLog::getId);
         return this.page(page, qw);
     }
+
 }
