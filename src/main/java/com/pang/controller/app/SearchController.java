@@ -2,14 +2,15 @@ package com.pang.controller.app;
 
 import com.pang.common.Result;
 import com.pang.service.SearchService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/app/search")
+@RequiredArgsConstructor
 public class SearchController {
 
-    @Autowired private SearchService searchService;
+    private final SearchService searchService;
 
     @GetMapping
     public Result search(@RequestParam String keyword,

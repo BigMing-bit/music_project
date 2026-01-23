@@ -1,62 +1,81 @@
 package com.pang.service.impl;
 
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pang.entity.SysAdmin;
+import com.pang.entity.SysAdminRole;
+import com.pang.entity.SysRole;
+import com.pang.entity.vo.AdminVO;
 import com.pang.mapper.SysAdminMapper;
+import com.pang.mapper.SysAdminRoleMapper;
+import com.pang.mapper.SysRoleMapper;
+import com.pang.security.dto.AdminQueryDTO;
 import com.pang.service.AdminService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class AdminServiceImpl extends ServiceImpl<SysAdminMapper, SysAdmin> implements AdminService {
 
     private final SysAdminMapper adminMapper;
-
+    private final SysAdminRoleMapper adminRoleMapper;
+    private final SysRoleMapper roleMapper;
 
     @Override
-    public SysAdmin getById(Long id) {
-        return adminMapper.selectById(id);
+    public IPage<AdminVO> adminPage(AdminQueryDTO queryDTO) {
+        Page<SysAdmin> page = new Page<>(queryDTO.getPageNum(), queryDTO.getPageSize());
+        IPage<SysAdmin> sysAdminPage = adminMapper.selectAdminPage(page, queryDTO.getKeyword(), queryDTO.getStatus());
+        
+        return sysAdminPage.convert(sysAdmin -> {
+            AdminVO adminVO = new AdminVO();
+            BeanUtils.copyProperties(sysAdmin, adminVO);
+            adminVO.setRoles(getRolesByAdminId(sysAdmin.getId()));
+            return adminVO;
+        });
     }
 
     @Override
-    public boolean updateById(SysAdmin admin) {
-        return adminMapper.updateById(admin) > 0;  // MyBatis-Plus 的 updateById 方法，返回更新的行数
+    public List<SysRole> getRolesByAdminId(Long adminId) {
+        LambdaQueryWrapper<SysAdminRole> qw = new LambdaQueryWrapper<>();
+        qw.eq(SysAdminRole::getAdminId, adminId);
+        List<SysAdminRole> adminRoles = adminRoleMapper.selectList(qw);
+        
+        if (adminRoles.isEmpty()) {
+            return List.of();
+        }
+        
+        List<Long> roleIds = adminRoles.stream().map(SysAdminRole::getRoleId).toList();
+        LambdaQueryWrapper<SysRole> roleQw = new LambdaQueryWrapper<>();
+        roleQw.in(SysRole::getId, roleIds);
+        return roleMapper.selectList(roleQw);
     }
 
     @Override
-    public IPage<SysAdmin> adminPage(Integer pageNum, Integer pageSize, String keyword, Integer status) {
-        if (pageNum == null || pageNum < 1) pageNum = 1;
-        if (pageSize == null || pageSize < 1) pageSize = 10;
-
-        Page<SysAdmin> page = new Page<>(pageNum, pageSize);
-
-        LambdaQueryWrapper<SysAdmin> qw = new LambdaQueryWrapper<>();
-
-        qw.select(
-                SysAdmin::getId,
-                SysAdmin::getUsername,
-                SysAdmin::getNickname,
-                SysAdmin::getAvatarUrl,
-                SysAdmin::getStatus,
-                SysAdmin::getLastLoginTime,
-                SysAdmin::getCreateTime,
-                SysAdmin::getUpdateTime
-        );
-
-        qw.and(StrUtil.isNotBlank(keyword), w -> w
-                        .like(SysAdmin::getUsername, keyword)
-                        .or()
-                        .like(SysAdmin::getNickname, keyword)
-                )
-                .eq(status != null, SysAdmin::getStatus, status)
-                .orderByDesc(SysAdmin::getId);
-
-        return this.page(page, qw);
+    @Transactional
+    public void saveAdminRoles(Long adminId, List<Long> roleIds) {
+        // Delete existing roles
+        LambdaQueryWrapper<SysAdminRole> deleteQw = new LambdaQueryWrapper<>();
+        deleteQw.eq(SysAdminRole::getAdminId, adminId);
+        adminRoleMapper.delete(deleteQw);
+        
+        // Save new roles
+        if (roleIds != null && !roleIds.isEmpty()) {
+            for (Long roleId : roleIds) {
+                SysAdminRole adminRole = new SysAdminRole();
+                adminRole.setAdminId(adminId);
+                adminRole.setRoleId(roleId);
+                adminRole.setCreateTime(LocalDateTime.now());
+                adminRoleMapper.insert(adminRole);
+            }
+        }
     }
 
 }

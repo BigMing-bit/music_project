@@ -3,7 +3,7 @@ package com.pang.service.impl;
 import com.pang.entity.vo.*;
 import com.pang.mapper.*;
 import com.pang.service.HomeService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 
@@ -11,10 +11,10 @@ import java.util.*;
 
 
 @Service
+@RequiredArgsConstructor
 public class HomeServiceImpl implements HomeService {
 
-    @Autowired
-    private HomeMapper homeMapper;
+    private final HomeMapper homeMapper;
 
     @Override
     public HomeResultVo getHome() {

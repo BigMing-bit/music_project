@@ -8,8 +8,8 @@ import com.pang.service.SongLikeService;
 import com.pang.service.SongService;
 import com.pang.utils.SaTokenUtil;
 import io.swagger.annotations.ApiOperation;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,13 +17,12 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/app/songs")
+@RequiredArgsConstructor
 public class SongController {
 
-    @Autowired
-    private SongService songService;
-
-    @Autowired private SongLikeService songLikeService;
-    @Autowired private PlayHistoryService playHistoryService;
+    private final SongService songService;
+    private final SongLikeService songLikeService;
+    private final PlayHistoryService playHistoryService;
 
     @GetMapping("/page")
     @ApiOperation("歌曲分页查询（返回 Song 实体）")

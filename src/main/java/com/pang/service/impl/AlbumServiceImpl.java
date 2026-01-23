@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.pang.common.Constants.AlbumConstants;
+import com.pang.common.constants.BusinessConstants;
 import com.pang.entity.Album;
 import com.pang.entity.Query.AlbumQueryParam;
 import com.pang.entity.Singer;
@@ -38,7 +38,7 @@ public class AlbumServiceImpl extends ServiceImpl<AlbumMapper, Album> implements
        Album album = this.getOne(
                new LambdaQueryWrapper<Album>()
                        .eq(Album::getId, albumId)
-                       .eq(Album::getStatus, AlbumConstants.ACTIVE_STATUS)
+                       .eq(Album::getStatus, BusinessConstants.ACTIVE_STATUS)
        );
 
        if (album == null) return null;
@@ -46,7 +46,7 @@ public class AlbumServiceImpl extends ServiceImpl<AlbumMapper, Album> implements
        Singer singer = singerMapper.selectOne(
                new LambdaQueryWrapper<Singer>()
                        .eq(Singer::getId, album.getSingerId())
-                       .eq(Singer::getStatus, AlbumConstants.ACTIVE_STATUS)
+                       .eq(Singer::getStatus, BusinessConstants.ACTIVE_STATUS)
        );
 
        return AlbumDetailVo.builder()
@@ -150,11 +150,11 @@ public class AlbumServiceImpl extends ServiceImpl<AlbumMapper, Album> implements
 
     @Override
     public IPage<AlbumVo> getAlbumPage(String name, Long singerId, Integer page, Integer pageSize) {
-        Integer validatedPage = validatePageParam(page, AlbumConstants.DEFAULT_PAGE_NUM);
-        Integer validatedPageSize = validatePageParam(pageSize, AlbumConstants.DEFAULT_PAGE_SIZE);
+        Integer validatedPage = validatePageParam(page, BusinessConstants.DEFAULT_PAGE_NUM);
+        Integer validatedPageSize = validatePageParam(pageSize, BusinessConstants.DEFAULT_PAGE_SIZE);
 
         Page<Album> albumPage = new Page<>(validatedPage, validatedPageSize);
-        return baseMapper.pageAlbumVo(albumPage, name, AlbumConstants.ACTIVE_STATUS, singerId);
+        return baseMapper.pageAlbumVo(albumPage, name, BusinessConstants.ACTIVE_STATUS, singerId);
     }
 
 

@@ -3,15 +3,15 @@ package com.pang.controller.app;
 import com.pang.common.Result;
 import com.pang.service.AlbumService;
 import com.pang.utils.SaTokenUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/app/albums")
+@RequiredArgsConstructor
 public class AlbumController {
 
-    @Autowired
-    private AlbumService albumService;
+    private final AlbumService albumService;
 
 
     @GetMapping("/{id}")

@@ -14,19 +14,20 @@ import com.pang.mapper.SongLikeMapper;
 import com.pang.mapper.SongMapper;
 import com.pang.service.BaseFavoriteService;
 import com.pang.service.SongLikeService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class SongLikeServiceImpl extends BaseFavoriteService<SongLike, Song, SongListVo> implements SongLikeService {
 
-    @Autowired private SongLikeMapper songLikeMapper;
-    @Autowired private SongMapper songMapper;
-    @Autowired private SingerMapper singerMapper;
-    @Autowired private AlbumMapper albumMapper;
+    private final SongLikeMapper songLikeMapper;
+    private final SongMapper songMapper;
+    private final SingerMapper singerMapper;
+    private final AlbumMapper albumMapper;
 
     @Override
     public boolean toggleLike(Long songId, Long userId) {

@@ -11,18 +11,19 @@ import com.pang.mapper.PlaylistMapper;
 import com.pang.mapper.SingerMapper;
 import com.pang.mapper.SongMapper;
 import com.pang.service.SearchService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class SearchServiceImpl implements SearchService {
 
-    @Autowired private SongMapper songMapper;
-    @Autowired private SingerMapper singerMapper;
-    @Autowired private AlbumMapper albumMapper;
-    @Autowired private PlaylistMapper playlistMapper;
+    private final SongMapper songMapper;
+    private final SingerMapper singerMapper;
+    private final AlbumMapper albumMapper;
+    private final PlaylistMapper playlistMapper;
 
     @Override
     public CursorPageResult<?> search(String keyword, String type, String cursor, Integer size) {

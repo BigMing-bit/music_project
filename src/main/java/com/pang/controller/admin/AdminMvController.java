@@ -6,7 +6,7 @@ import com.pang.entity.MusicMv;
 import com.pang.service.MusicMvService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,10 +15,10 @@ import java.util.Map;
 @RestController
 @RequestMapping("/admin/mvs")
 @Api(tags = "MV管理")
+@RequiredArgsConstructor
 public class AdminMvController {
 
-    @Autowired
-    private MusicMvService mvService;
+    private final MusicMvService mvService;
 
     @SaCheckPermission(value = "music:mv:view", type = "admin")
     @GetMapping

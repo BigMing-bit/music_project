@@ -16,15 +16,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.pang.common.Constants.PlaylistConstants;
+import com.pang.common.constants.BusinessConstants;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static com.pang.common.Constants.AlbumConstants.ACTIVE_STATUS;
 
 @Slf4j
 @Service
@@ -65,7 +63,7 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
      */
     private List<Playlist> queryHomePlaylists(String cursor, Integer size) {
         LambdaQueryWrapper<Playlist> qw = new LambdaQueryWrapper<>();
-        qw.eq(Playlist::getStatus, PlaylistConstants.ACTIVE_STATUS);
+        qw.eq(Playlist::getStatus, BusinessConstants.ACTIVE_STATUS);
 
         if (cursor != null && !cursor.isBlank()) {
             addCursorCondition(qw, cursor);
@@ -164,7 +162,7 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
         List<Song> songs = songMapper.selectList(
                 new LambdaQueryWrapper<Song>()
                         .in(Song::getId, songIds)
-                        .eq(Song::getStatus, ACTIVE_STATUS)
+                        .eq(Song::getStatus, BusinessConstants.ACTIVE_STATUS)
         );
 
         Map<Long, String> singerMap = getSingerNameMap(
@@ -182,7 +180,7 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
                 SongListVo.builder()
                         .id(s.getId())
                         .songName(s.getSongName())
-                        .singerName(singerMap.getOrDefault(s.getSingerId(), PlaylistConstants.UNKNOWN_SINGER))
+                        .singerName(singerMap.getOrDefault(s.getSingerId(), BusinessConstants.UNKNOWN_SINGER))
                         .coverUrl(s.getCoverUrl())
                         .audioUrl(s.getAudioUrl())
                         .playCount(s.getPlayCount())
@@ -198,7 +196,7 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
         List<Singer> singers = singerMapper.selectList(
                 new LambdaQueryWrapper<Singer>()
                         .in(Singer::getId, singerIds)
-                        .eq(Singer::getStatus, ACTIVE_STATUS)
+                        .eq(Singer::getStatus, BusinessConstants.ACTIVE_STATUS)
         );
 
         return singers.stream()
@@ -249,7 +247,7 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
      * 添加歌单歌曲游标条件
      */
     private void addPlaylistSongCursorCondition(LambdaQueryWrapper<PlaylistSong> qw, String cursor) {
-        String[] arr = cursor.split(PlaylistConstants.CURSOR_SEPARATOR);
+        String[] arr = cursor.split(BusinessConstants.CURSOR_SEPARATOR);
         if (arr.length >= 2) {
             Integer cursorSort = Integer.parseInt(arr[0]);
             Long cursorId = Long.parseLong(arr[1]);
@@ -267,7 +265,7 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
     private String buildNextCursor(List<PlaylistSong> psList) {
         if (psList.isEmpty()) return null;
         PlaylistSong last = psList.get(psList.size() - 1);
-        return last.getSort() + PlaylistConstants.CURSOR_SEPARATOR + last.getId();
+        return last.getSort() + BusinessConstants.CURSOR_SEPARATOR + last.getId();
     }
 
     @Override
@@ -359,7 +357,7 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
         p.setName(dto.getName());
         p.setDescription(dto.getDescription());
         p.setCoverUrl(dto.getCoverUrl());
-        p.setStatus(dto.getStatus() == null ? ACTIVE_STATUS : dto.getStatus());
+        p.setStatus(dto.getStatus() == null ? BusinessConstants.ACTIVE_STATUS : dto.getStatus());
         p.setUpdateTime(LocalDateTime.now());
 
         return p;

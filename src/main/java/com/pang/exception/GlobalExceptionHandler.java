@@ -1,6 +1,6 @@
 package com.pang.exception;
 
-import com.pang.common.CommonConstants;
+import com.pang.common.constants.CommonConstants;
 import com.pang.common.Result;
 
 import org.springframework.http.HttpStatus;
@@ -12,21 +12,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BizException.class)
-    public ResponseEntity<Result> handleBizException(BizException e) {
-        Result result = Result.error(e.getCode(), e.getMessage());
-        // 使用标准HTTP状态码，如 400 Bad Request 或 422 Unprocessable Entity
-        return new ResponseEntity<>(result, HttpStatus.BAD_REQUEST);
+    public Result handleBizException(BizException e) {
+        return Result.error(e.getCode(), e.getMessage());
     }
 
     @ExceptionHandler(GlobalException.class)
-    public ResponseEntity<Result> handleGlobalException(GlobalException e) {
-        Result result = Result.error(CommonConstants.FAIL, e.getMessage());
-        return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
+    public Result handleGlobalException(GlobalException e) {
+        return Result.error(CommonConstants.FAIL, e.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Result> handleException(Exception e) {
-        Result result = Result.error(CommonConstants.FAIL, "服务器内部错误: " + e.getMessage());
-        return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
+    public Result handleException(Exception e) {
+        return Result.error(CommonConstants.FAIL, "服务器内部错误: " + e.getMessage());
     }
 }
+

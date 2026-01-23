@@ -1,6 +1,6 @@
 package com.pang.controller.app;
 
-import com.pang.common.CommonConstants;
+import com.pang.common.constants.CommonConstants;
 import com.pang.common.Result;
 import com.pang.entity.User;
 import com.pang.service.*;

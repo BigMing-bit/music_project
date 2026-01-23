@@ -1,6 +1,8 @@
 package com.pang.entity.vo;
 
+import lombok.Builder;
 import lombok.Data;
+
 
 @Data
 public class UserVo {

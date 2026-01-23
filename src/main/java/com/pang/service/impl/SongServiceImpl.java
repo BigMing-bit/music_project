@@ -11,6 +11,7 @@ import com.pang.entity.vo.OptionVo;
 import com.pang.entity.vo.SongVo;
 import com.pang.mapper.AlbumMapper;
 import com.pang.mapper.SongMapper;
+import com.pang.security.dto.SongQueryDTO;
 import com.pang.service.SongService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,12 +40,7 @@ public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements So
 
     @Override
     public List<SongVo> getHotSongs(Integer limit) {
-        try {
-            return songMapper.selectHotSongs(limit);
-        } catch (Exception e) {
-            log.error("获取热门歌曲失败，limit: {}", limit, e);
-            return null;
-        }
+        return songMapper.selectHotSongs(limit);
     }
 
     @Override
@@ -60,69 +56,51 @@ public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements So
     @Override
     public Page<Song> pageSongs(Integer page, Integer pageSize,
                                 String keyword, Long singerId, Long albumId, String orderBy) {
-
         Page<Song> p = new Page<>(page, pageSize);
-
-        LambdaQueryWrapper<Song> wrapper = new LambdaQueryWrapper<>();
-
-        wrapper.eq(Song::getStatus, 1);
-        if (StringUtils.hasText(keyword)) {
-            wrapper.like(Song::getSongName, keyword);
-        }
-
-        if (singerId != null) {
-            wrapper.eq(Song::getSingerId, singerId);
-        }
-        if (albumId != null) {
-            wrapper.eq(Song::getAlbumId, albumId);
-        }
-        if ("hot".equalsIgnoreCase(orderBy)) {
-            wrapper.orderByDesc(Song::getPlayCount);
-        } else if ("like".equalsIgnoreCase(orderBy)) {
-            wrapper.orderByDesc(Song::getLikeCount);
-        } else {
-            wrapper.orderByDesc(Song::getCreateTime); // 默认最新
-        }
+        LambdaQueryWrapper<Song> wrapper = new LambdaQueryWrapper<Song>()
+                .eq(Song::getStatus, 1)
+                .like(StringUtils.hasText(keyword), Song::getSongName, keyword)
+                .eq(singerId != null, Song::getSingerId, singerId)
+                .eq(albumId != null, Song::getAlbumId, albumId)
+                .orderByDesc("hot".equalsIgnoreCase(orderBy), Song::getPlayCount)
+                .orderByDesc("like".equalsIgnoreCase(orderBy), Song::getLikeCount)
+                .orderByDesc("hot".equalsIgnoreCase(orderBy) || "like".equalsIgnoreCase(orderBy), Song::getCreateTime);
 
         return this.page(p, wrapper);
     }
 
     @Override
-    public IPage<SongVo> pageSongVo(Integer pageNum, Integer pageSize,
-                                    String keyword, Integer status,
-                                    Long singerId, Long albumId,
-                                    String orderBy) {
-
-        Page<SongVo> page = new Page<>(pageNum, pageSize);
-        return songMapper.selectSongVoPage(page, keyword, status, singerId, albumId, orderBy);
+    public IPage<SongVo> pageSongVo(SongQueryDTO queryDTO) {
+        Page<SongVo> page = new Page<>(queryDTO.getPageNum(), queryDTO.getPageSize());
+        return songMapper.selectSongVoPage(page, queryDTO.getKeyword(), queryDTO.getStatus(), 
+                queryDTO.getSingerId(), queryDTO.getAlbumId(), queryDTO.getOrderBy());
     }
 
     @Override
     public List<OptionVo> selectSongOptions(String keyword) {
-        return this.baseMapper.selectSongOptions(keyword);
+        return songMapper.selectSongOptions(keyword);
     }
 
     @Override
     public List<OptionVo> selectSongOptionsByIds(List<Long> ids) {
-        if (CollectionUtils.isEmpty(ids)) {
-            return List.of();
-        }
-        return this.baseMapper.selectSongOptionsByIds(ids);
+        return CollectionUtils.isEmpty(ids) ? List.of() : songMapper.selectSongOptionsByIds(ids);
     }
 
     @Override
     public void updateAlbumName(Long songId) {
-        // 查询歌曲信息
         Song song = songMapper.selectById(songId);
         if (song != null && song.getAlbumId() != null) {
-            // 获取专辑信息
             Album album = albumMapper.selectById(song.getAlbumId());
             if (album != null) {
-                // 更新歌曲表中的 albumName 字段
                 song.setAlbumName(album.getAlbumName());
-                // 更新数据库中的歌曲记录
                 songMapper.updateById(song);
             }
         }
     }
- }
+
+    @Override
+    public void saveOrUpdateWithAlbumName(Song song) {
+        this.saveOrUpdate(song);
+        updateAlbumName(song.getId());
+    }
+}

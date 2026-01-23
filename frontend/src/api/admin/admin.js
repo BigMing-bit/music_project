@@ -18,3 +18,11 @@ export function updateAdminStatus(id, status) {
 export function deleteAdmins(ids) {
     return request({ url: "/admin/admins", method: "delete", data: ids })
 }
+
+export function getRoles() {
+    return request({ url: "/admin/admins/roles", method: "get" })
+}
+
+export function getAdminRoles(id) {
+    return request({ url: `/admin/admins/${id}/roles`, method: "get" })
+}

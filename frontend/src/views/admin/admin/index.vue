@@ -44,6 +44,11 @@
         <el-table-column type="selection" width="50" />
         <el-table-column prop="username" label="用户名" min-width="160" align="center" />
         <el-table-column prop="nickname" label="昵称" min-width="160" align="center" />
+        <el-table-column label="角色" width="120" align="center">
+          <template #default="{ row }">
+            <el-tag v-for="role in row.roles" :key="role.id">{{ role.roleName }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="avatarUrl" label="头像" width="110" align="center">
           <template #default="{ row }">
             <el-image
@@ -74,7 +79,6 @@
         <el-table-column prop="createTime" label="创建时间" width="180" align="center">
           <template #default="{ row }">{{ formatTime(row.createTime) }}</template>
         </el-table-column>
-
         <el-table-column label="操作" width="180" fixed="right" align="center">
           <template #default="{ row }">
             <el-button type="primary" @click="openDialog(row)">编辑</el-button>
@@ -148,6 +152,17 @@
             <el-radio :value="0">禁用</el-radio>
           </el-radio-group>
         </el-form-item>
+        
+        <el-form-item label="角色" required>
+          <el-select v-model="form.roleIds" multiple placeholder="请选择角色" style="width: 100%">
+            <el-option
+              v-for="role in roles"
+              :key="role.id"
+              :label="role.roleName"
+              :value="role.id"
+            />
+          </el-select>
+        </el-form-item>
       </el-form>
 
       <template #footer>
@@ -161,7 +176,7 @@
 <script setup>
 import { ref, reactive, onMounted } from "vue"
 import { ElMessage, ElMessageBox } from "element-plus"
-import { getAdminList, addAdmin, updateAdmin, deleteAdmins, updateAdminStatus } from "@/api/admin/admin"
+import { getAdminList, addAdmin, updateAdmin, deleteAdmins, updateAdminStatus, getRoles, getAdminRoles } from "@/api/admin/admin"
 import {Plus} from "@element-plus/icons-vue";
 import {uploadImage} from "@/api/upload.js";
 
@@ -169,6 +184,7 @@ const loading = ref(false)
 const list = ref([])
 const total = ref(0)
 const selectedIds = ref([])
+const roles = ref([])
 
 const DEFAULT_PAGE_SIZE = Number(localStorage.getItem("ADMIN_PAGE_SIZE")) || 10
 const query = reactive({ pageNum: 1, pageSize: DEFAULT_PAGE_SIZE, keyword: "", status: null })
@@ -241,7 +257,8 @@ const form = reactive({
   password: "",
   nickname: "",
   avatarUrl: "",   // ✅ 一定要加
-  status: 1
+  status: 1,
+  roleIds: []
 })
 
 function openDialog(row) {
@@ -254,7 +271,12 @@ function openDialog(row) {
       password: "",
       nickname: row.nickname || "",
       avatarUrl: row.avatarUrl || "",   // ✅ 回填
-      status: row.status ?? 1
+      status: row.status ?? 1,
+      roleIds: []
+    })
+    // Load admin roles
+    getAdminRoles(row.id).then(res => {
+      form.roleIds = res.data.map(role => role.id)
     })
   } else {
     dialogTitle.value = "新增管理员"
@@ -264,14 +286,26 @@ function openDialog(row) {
       password: "",
       nickname: "",
       avatarUrl: "",    // ✅ 清空
-      status: 1
+      status: 1,
+      roleIds: []
     })
   }
 }
 
 function submitForm() {
   const api = form.id ? updateAdmin : addAdmin
-  api(form).then(() => {
+  const data = {
+    admin: {
+      id: form.id,
+      username: form.username,
+      password: form.password,
+      nickname: form.nickname,
+      avatarUrl: form.avatarUrl,
+      status: form.status
+    },
+    roleIds: form.roleIds
+  }
+  api(data).then(() => {
     ElMessage.success("保存成功")
     dialogVisible.value = false
     loadData()
@@ -284,9 +318,16 @@ async function handleUploadAvatar({ file }) {
   ElMessage.success("上传成功")
 }
 
+function loadRoles() {
+  getRoles().then(res => {
+    roles.value = res.data
+  })
+}
 
-
-onMounted(loadData)
+onMounted(() => {
+  loadData()
+  loadRoles()
+})
 </script>
 
 <style scoped>

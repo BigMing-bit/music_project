@@ -12,26 +12,20 @@ import com.pang.mapper.SysAdminMapper;
 import com.pang.security.dto.CommentCreateDTO;
 import com.pang.service.MusicCommentService;
 import com.pang.service.SysOperationLogService;
-import jakarta.annotation.Resource;
-import com.pang.common.Constants.CommentConstants;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.pang.common.constants.CommentConstants;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
 @Service
+@RequiredArgsConstructor
 public class MusicCommentServiceImpl extends ServiceImpl<MusicCommentMapper, MusicComment> implements MusicCommentService {
 
-    @Resource
-    private SysAdminMapper sysAdminMapper;
-
-    @Resource
-    private MusicCommentMapper commentMapper;
-
-
-    @Autowired
-    private SysOperationLogService logService;
+    private final SysAdminMapper sysAdminMapper;
+    private final MusicCommentMapper commentMapper;
+    private final SysOperationLogService logService;
 
 
     @Override

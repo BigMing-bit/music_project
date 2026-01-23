@@ -12,18 +12,19 @@ import com.pang.mapper.PlayHistoryMapper;
 import com.pang.mapper.SingerMapper;
 import com.pang.mapper.SongMapper;
 import com.pang.service.PlayHistoryService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class PlayHistoryServiceImpl extends ServiceImpl<PlayHistoryMapper, PlayHistory> implements PlayHistoryService {
 
-    @Autowired private PlayHistoryMapper playHistoryMapper;
-    @Autowired private SongMapper songMapper;
-    @Autowired private SingerMapper singerMapper;
+    private final PlayHistoryMapper playHistoryMapper;
+    private final SongMapper songMapper;
+    private final SingerMapper singerMapper;
 
     @Override
     public void addPlayHistory(Long userId, Long songId) {

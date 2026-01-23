@@ -1,17 +1,21 @@
 package com.pang.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.pang.common.CommonConstants;
+import com.pang.common.constants.CommonConstants;
 import com.pang.entity.*;
 import com.pang.exception.BizException;
 import com.pang.mapper.*;
 import com.pang.service.AdminAuthService;
 import com.pang.utils.SaTokenUtil;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import java.util.List;
 
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class AdminAuthServiceImpl implements AdminAuthService {
 
     private final SysAdminMapper adminMapper;
@@ -19,18 +23,6 @@ public class AdminAuthServiceImpl implements AdminAuthService {
     private final SysRolePermissionMapper rolePermissionMapper;
     private final SysPermissionMapper permissionMapper;
     private final SysRoleMapper roleMapper;
-
-    public AdminAuthServiceImpl(SysAdminMapper adminMapper,
-                                SysAdminRoleMapper adminRoleMapper,
-                                SysRolePermissionMapper rolePermissionMapper,
-                                SysPermissionMapper permissionMapper,
-                                SysRoleMapper roleMapper) {
-        this.adminMapper = adminMapper;
-        this.adminRoleMapper = adminRoleMapper;
-        this.rolePermissionMapper = rolePermissionMapper;
-        this.permissionMapper = permissionMapper;
-        this.roleMapper = roleMapper;
-    }
 
     @Override
     public SysAdmin login(String username, String password) {

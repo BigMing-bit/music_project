@@ -6,17 +6,17 @@ import com.pang.entity.vo.SingerVo;
 import com.pang.entity.vo.SongVo;
 import com.pang.service.SingerService;
 import io.swagger.annotations.ApiOperation;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/app/singers")
+@RequiredArgsConstructor
 public class SingerController{
 
-     @Autowired
-     SingerService singerService;
+     private final SingerService singerService;
 
 
     @GetMapping("/list")

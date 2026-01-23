@@ -2,15 +2,15 @@ package com.pang.controller.app;
 
 import com.pang.common.Result;
 import com.pang.service.HomeService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/app/home")
+@RequiredArgsConstructor
 public class HomeController {
 
-    @Autowired
-    private HomeService homeService;
+    private final HomeService homeService;
 
     @GetMapping
     public Result home() {

@@ -77,8 +77,6 @@ public class AdminAlbumController extends BaseController {
         albumService.updateById(album);
         return Result.success("状态更新成功");
     }
-
-
     @SaCheckPermission(value = "music:album:delete", type = "admin")
     @DeleteMapping
     @ApiOperation("批量删除专辑")

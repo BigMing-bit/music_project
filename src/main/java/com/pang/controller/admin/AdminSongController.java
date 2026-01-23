@@ -1,20 +1,17 @@
 package com.pang.controller.admin;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
-
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.pang.common.Result;
 import com.pang.common.base.BaseController;
-
 import com.pang.common.log.OpLog;
 import com.pang.entity.Song;
 import com.pang.entity.vo.SongVo;
+import com.pang.security.dto.SongQueryDTO;
 import com.pang.service.SongService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-
-import org.springframework.beans.factory.annotation.Autowired;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -24,10 +21,10 @@ import java.util.Map;
 @RestController
 @RequestMapping("/admin/songs")
 @Api(tags = "歌曲管理")
+@RequiredArgsConstructor
 public class AdminSongController extends BaseController {
 
-    @Autowired
-    private SongService songService;
+    private final SongService songService;
 
 
     @OpLog(module = "歌曲管理", action = "新增歌曲")
@@ -35,55 +32,45 @@ public class AdminSongController extends BaseController {
     @PostMapping("save")
     @ApiOperation("新增歌曲")
     public Result save(@RequestBody Song song) {
-       if (song.getId() == null){
-           song.setCreateTime(LocalDateTime.now());
-          }
-       songService.saveOrUpdate(song);
-       songService.updateAlbumName(song.getId());
+        if (song.getId() == null) {
+            song.setCreateTime(LocalDateTime.now());
+        }
+        songService.saveOrUpdateWithAlbumName(song);
         return Result.success("新添成功");
     }
 
-    @SaCheckPermission(value = "music:song:edit",type = "admin")
+    @SaCheckPermission(value = "music:song:edit", type = "admin")
     @PutMapping
     @ApiOperation("更新歌曲")
     public Result updateSong(@RequestBody Song song) {
-      songService.updateById(song);
-      songService.updateAlbumName(song.getId());
-      return Result.success("更新成功");
+        songService.saveOrUpdateWithAlbumName(song);
+        return Result.success("更新成功");
     }
 
     @SaCheckPermission(value = "music:song:edit", type = "admin")
     @PutMapping("/{id}/status")
     @ApiOperation("更新歌曲状态")
     public Result updateSongStatus(@PathVariable Long id, @RequestBody Map<String, Integer> params) {
-            Song song = new Song();
-            song.setId(id);
-            song.setStatus(params.get("status"));
-            songService.getBaseMapper().updateById(song);
-            return Result.success("更新成功");
+        songService.lambdaUpdate()
+                .eq(Song::getId, id)
+                .set(Song::getStatus, params.get("status"))
+                .update();
+        return Result.success("更新成功");
     }
-
 
     @OpLog(module = "歌曲管理", action = "删除歌曲")
     @SaCheckPermission(value = "music:song:delete", type = "admin")
     @DeleteMapping
     @ApiOperation("批量删除歌曲")
-    public Result delete(@RequestBody Long[] ids) {
-        songService.removeBatchByIds(List.of(ids));
+    public Result delete(@RequestBody List<Long> ids) {
+        songService.removeBatchByIds(ids);
         return Result.success("删除成功");
     }
 
     @GetMapping("/list")
     @ApiOperation("获取歌曲列表（分页 + join）")
-    public Result getSongList(@RequestParam(defaultValue = "1") Integer pageNum,
-                              @RequestParam(defaultValue = "10") Integer pageSize,
-                              @RequestParam(required = false) String keyword,
-                              @RequestParam(required = false) Integer status,
-                              @RequestParam(required = false) Long singerId,
-                              @RequestParam(required = false) Long albumId,
-                              @RequestParam(required = false) String orderBy) {
-
-        IPage<SongVo> page = songService.pageSongVo(pageNum, pageSize, keyword, status, singerId, albumId, orderBy);
+    public Result getSongList(SongQueryDTO queryDTO) {
+        IPage<SongVo> page = songService.pageSongVo(queryDTO);
         return Result.success(page);
     }
 
